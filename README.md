@@ -25,3 +25,6 @@ can read them.
 - Store class count per day so timetable changes don't alter history
 - Backup/export of data
 - Android version
+
+<img width="1290" height="1821" alt="IMG_2614" src="https://github.com/user-attachments/assets/56a247c4-4e0d-49b3-aa4d-2af3b7957126" />
+<img width="1290" height="2448" alt="IMG_2613" src="https://github.com/user-attachments/assets/9f1f1434-72c1-4b2d-931a-1f2ea794f822" />
