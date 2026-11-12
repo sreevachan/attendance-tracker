@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Attendance Calendar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#eef2f7;--card:#fff;--ink:#14213d;--mute:#5b6577;--line:#d5dce8;--good:#17803d;--goodbg:#cfeedb;--bad:#c62828;--badbg:#f8d4d4;--warn:#b45309;--warnbg:#fbe5c0;--hol:#6b7280;--holbg:#e3e6ec;--accent:#2b59c3;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1624;--card:#18223a;--ink:#e8edf7;--mute:#9aa6bd;--line:#2b3856;--good:#4ade80;--goodbg:#14532d;--bad:#f87171;--badbg:#5b1f1f;--warn:#fbbf24;--warnbg:#5a4210;--hol:#9ca3af;--holbg:#2a3550;--accent:#7aa2ff}}
+:root[data-theme="dark"]{--bg:#0f1624;--card:#18223a;--ink:#e8edf7;--mute:#9aa6bd;--line:#2b3856;--good:#4ade80;--goodbg:#14532d;--bad:#f87171;--badbg:#5b1f1f;--warn:#fbbf24;--warnbg:#5a4210;--hol:#9ca3af;--holbg:#2a3550;--accent:#7aa2ff}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+main{max-width:480px;margin:0 auto;padding:16px 14px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.big{font-size:3.6rem;font-weight:800;line-height:1;letter-spacing:-.03em}
+.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.lbl{font-size:.8rem;color:var(--mute)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.stat{background:var(--bg);border-radius:10px;padding:10px}
+.stat b{display:block;font-size:1.25rem;font-weight:800}
+.bar{position:relative;height:10px;border-radius:5px;background:var(--line);margin:16px 0 4px}
+.fill{height:100%;border-radius:5px;background:var(--accent)}
+.mark{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nav h2{margin:0;font-size:1.1rem}
+button{font:inherit;font-weight:600;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dow{text-align:center;font-size:.75rem;color:var(--mute);padding-bottom:2px}
+.day{aspect-ratio:1/1;padding:0;border-radius:10px;font-weight:600;font-size:.95rem;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center}
+.day.P{background:var(--goodbg);border-color:var(--good);color:var(--good)}
+.day.A{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.day.H{background:var(--holbg);border-color:var(--hol);color:var(--hol)}
+.day.X{background:var(--warnbg);border-color:var(--warn);color:var(--warn)}
+.day.off{opacity:.35}
+.day.today{outline:2px solid var(--accent);outline-offset:1px}
+.day:disabled{cursor:default}
+.empty{visibility:hidden}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:.78rem;color:var(--mute);margin-top:12px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:20}
+.sheet.on{display:flex}
+.panel{background:var(--card);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.panel h3{margin:0 0 12px;font-size:1.05rem}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btns button{padding:14px}
+.bp{background:var(--goodbg);color:var(--good);border-color:var(--good)}
+.ba{background:var(--badbg);color:var(--bad);border-color:var(--bad)}
+.bh{background:var(--holbg);color:var(--hol);border-color:var(--hol)}
+.part{display:flex;gap:10px;margin-top:10px;align-items:center}
+input{font:inherit;font-size:1rem;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.plan{font-size:.95rem}
+h4{margin:0 0 8px;font-size:1rem}
+.row{display:flex;gap:10px}.row>div{flex:1}
+label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
+.small{font-size:.78rem;color:var(--mute);margin-top:8px}
+</style>
+</head>
+<body>
+<main>
+<section class="card" aria-live="polite">
+  <div class="top">
+    <div><div class="lbl">Overall attendance</div><div class="big" id="pct">–</div></div>
+    <div style="text-align:right"><div class="lbl">Status</div><div id="status" style="font-weight:800;font-size:1.1rem"></div></div>
+  </div>
+  <div class="bar"><div class="fill" id="fill"></div><div class="mark" style="left:75%"></div></div>
+  <div class="lbl" style="position:relative;height:1.3em"><span style="position:absolute;left:0">0</span><span style="position:absolute;left:75%;transform:translateX(-50%)">75% minimum</span><span style="position:absolute;right:0">100%</span></div>
+  <div class="stats">
+    <div class="stat"><span class="lbl">Days attended this month</span><b id="dAtt"></b></div>
+    <div class="stat"><span class="lbl">Classes attended (overall)</span><b id="cAtt"></b></div>
+    <div class="stat"><span class="lbl">This month</span><b id="mPct"></b></div>
+    <div class="stat"><span class="lbl">Classes this month</span><b id="mCls"></b></div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="nav">
+    <button id="prev" aria-label="Previous month">&lsaquo;</button>
+    <h2 id="mTitle"></h2>
+    <button id="next" aria-label="Next month">&rsaquo;</button>
+  </div>
+  <div class="cal" id="cal"></div>
+  <div class="legend">
+    <span><i style="background:var(--good)"></i>Present</span>
+    <span><i style="background:var(--bad)"></i>Absent</span>
+    <span><i style="background:var(--warn)"></i>Partly</span>
+    <span><i style="background:var(--hol)"></i>Holiday</span>
+  </div>
+  <p class="small">Tap a date to mark it. Sundays are off. Dates before Nov 1 are already in your starting numbers.</p>
+</section>
+
+<section class="card plan">
+  <h4>Plan ahead</h4>
+  <div class="row">
+    <div><label for="exam">Plan until (date)</label><input id="exam" type="date"></div>
+  </div>
+  <div id="plan" style="margin-top:10px"></div>
+  <p class="small">Every unmarked day (except Sundays) before that date counts as a working day. Mark holidays on the calendar and this updates.</p>
+</section>
+
+<section class="card">
+  <h4>Starting numbers (up to Oct 31)</h4>
+  <div class="row">
+    <div><label for="A0">Attended</label><input id="A0" type="number" min="0" inputmode="numeric"></div>
+    <div><label for="C0">Conducted</label><input id="C0" type="number" min="0" inputmode="numeric"></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div><label>Periods per weekday: Mon to Sat</label>
+      <div class="row" id="pw"></div></div>
+  </div>
+  <button style="margin-top:12px" id="save0">Save</button>
+</section>
+</main>
+
+<div class="sheet" id="sheet">
+  <div class="panel" role="dialog" aria-modal="true">
+    <h3 id="sTitle"></h3>
+    <div class="btns">
+      <button class="bp" id="bP">Present</button>
+      <button class="ba" id="bA">Absent</button>
+      <button class="bh" id="bH">Holiday</button>
+      <button id="bC">Clear</button>
+    </div>
+    <div class="part">
+      <input id="partN" type="number" min="0" inputmode="numeric" aria-label="Periods attended">
+      <button id="bX" style="white-space:nowrap">Partly present</button>
+    </div>
+    <button id="bClose" style="width:100%;margin-top:10px">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY="attendance-v2",BASE_END="2026-10-31";
+var st={A0:30,C0:40,pw:[0,6,5,6,6,6,5],days:{},exam:"2027-06-30"};
+  try{var r=localStorage.getItem(KEY);if(r){var p=JSON.parse(r);if(p&&p.days&&p.pw){st=p;if(st.exam==="2026-12-10")st.exam="2027-06-30";}}}catch(e){}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
+  var $=function(i){return document.getElementById(i)};
+  var now=new Date(),view=new Date(now.getFullYear(),now.getMonth(),1),sel=null;
+  function key(y,m,d){return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
+  function todayKey(){return key(now.getFullYear(),now.getMonth(),now.getDate())}
+  function dow(k){var a=k.split("-");return new Date(+a[0],+a[1]-1,+a[2]).getDay()}
+  function per(k){return st.pw[dow(k)]||0}
+  function attOf(k,e){return e.s==="P"?per(k):e.s==="A"?0:e.s==="X"?Math.min(e.a||0,per(k)):0}
+  function counts(k,e){return e.s==="H"?0:per(k)}
+  function totals(prefix){
+    var A=0,C=0,days=0,tot=0;
+    Object.keys(st.days).forEach(function(k){
+      if(prefix&&k.indexOf(prefix)!==0)return;
+      var e=st.days[k];if(e.s==="H"||per(k)===0)return;
+      A+=attOf(k,e);C+=counts(k,e);tot++;if(e.s==="P")days++;
+    });
+    return {A:A,C:C,days:days,tot:tot};
+  }
+  function fmt(x){return x.toFixed(1)+"%"}
+  function draw(){
+    var all=totals(""),A=st.A0+all.A,C=st.C0+all.C,p=C?A/C*100:0;
+    try{window.webkit.messageHandlers.att.postMessage({pct:p,a:A,c:C})}catch(e){}
+    $("pct").textContent=fmt(p);$("pct").className="big "+(p>=75?"good":"bad");document.title=fmt(p)+" attendance";
+    $("fill").style.width=Math.min(100,p)+"%";
+    $("status").innerHTML=p>=75?'<span class="good">Above 75%</span>':'<span class="bad">Below 75%</span>';
+    var pre=view.getFullYear()+"-"+String(view.getMonth()+1).padStart(2,"0");
+    var m=totals(pre);
+    $("dAtt").textContent=m.days+" of "+m.tot+" days";
+    $("cAtt").textContent=A+" / "+C;
+    $("mPct").textContent=m.C?fmt(m.A/m.C*100):"–";
+    $("mCls").textContent=m.A+" / "+m.C;
+    $("mTitle").textContent=view.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+    drawCal();drawPlan(A,C);
+  }
+  function drawCal(){
+    var cal=$("cal");cal.innerHTML="";
+    ["S","M","T","W","T","F","S"].forEach(function(d){var e=document.createElement("div");e.className="dow";e.textContent=d;cal.appendChild(e)});
+    var y=view.getFullYear(),mo=view.getMonth(),first=new Date(y,mo,1).getDay(),n=new Date(y,mo+1,0).getDate();
+    for(var i=0;i<first;i++){var s=document.createElement("div");s.className="empty";cal.appendChild(s)}
+    for(var d=1;d<=n;d++){
+      var k=key(y,mo,d),b=document.createElement("button"),e=st.days[k];
+      b.textContent=d;b.className="day"+(e?" "+e.s:"")+(k===todayKey()?" today":"");
+      if(dow(k)===0||k<=BASE_END){b.className+=" off";b.disabled=true}
+      else{(function(kk){b.onclick=function(){openSheet(kk)}})(k)}
+      cal.appendChild(b);
+    }
+  }
+  function drawPlan(A,C){
+    var ex=st.exam,L=0,t=todayKey(),d=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    $("exam").value=ex||"";
+    if(!ex){$("plan").textContent="Pick a date.";return}
+    for(var i=0;i<400;i++){var k=key(d.getFullYear(),d.getMonth(),d.getDate());if(k>=ex)break;
+      if(!st.days[k]&&k>BASE_END)L+=per(k);d.setDate(d.getDate()+1)}
+    var best=(A+L)/(C+L)*100,h="<b>"+L+"</b> classes left until that date. Full attendance gets you to <b>"+fmt(best)+"</b>.";
+    [75].forEach(function(x){var q=x/100,mm=Math.floor((A+L)-q*(C+L));
+      h+="<br>"+x+"%: "+(mm>=0?"you can miss up to <b>"+mm+"</b> classes.":"<span class='bad'>not reachable</span> by then.")});
+    $("plan").innerHTML=h;
+  }
+  function openSheet(k){
+    sel=k;var a=k.split("-");
+    $("sTitle").textContent=new Date(+a[0],+a[1]-1,+a[2]).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})+" ("+per(k)+" classes)";
+    $("partN").value=st.days[k]&&st.days[k].s==="X"?st.days[k].a:"";
+    $("partN").placeholder="Classes attended";
+    $("sheet").classList.add("on");
+  }
+  function set(v){if(!sel)return;if(v)st.days[sel]=v;else delete st.days[sel];save();$("sheet").classList.remove("on");draw()}
+  $("bP").onclick=function(){set({s:"P"})};
+  $("bA").onclick=function(){set({s:"A"})};
+  $("bH").onclick=function(){set({s:"H"})};
+  $("bC").onclick=function(){set(null)};
+  $("bX").onclick=function(){var n=parseInt($("partN").value,10);if(isNaN(n)||n<0)return;set({s:"X",a:Math.min(n,per(sel))})};
+  $("bClose").onclick=function(){$("sheet").classList.remove("on")};
+  $("sheet").onclick=function(e){if(e.target===$("sheet"))$("sheet").classList.remove("on")};
+  $("prev").onclick=function(){view=new Date(view.getFullYear(),view.getMonth()-1,1);draw()};
+  $("next").onclick=function(){view=new Date(view.getFullYear(),view.getMonth()+1,1);draw()};
+  $("exam").onchange=function(){st.exam=$("exam").value;save();draw()};
+  var pw=$("pw");["Mon","Tue","Wed","Thu","Fri","Sat"].forEach(function(n,i){
+    var w=document.createElement("div"),inp=document.createElement("input");inp.type="number";inp.min=0;inp.max=12;inp.id="pw"+(i+1);inp.setAttribute("aria-label",n);inp.value=st.pw[i+1];
+    var l=document.createElement("div");l.className="lbl";l.textContent=n;w.appendChild(inp);w.appendChild(l);pw.appendChild(w)});
+  $("A0").value=st.A0;$("C0").value=st.C0;
+  $("save0").onclick=function(){
+    var a=parseInt($("A0").value,10),c=parseInt($("C0").value,10);
+    if(!isNaN(a)&&!isNaN(c)&&a>=0&&c>=a){st.A0=a;st.C0=c}
+    for(var i=1;i<=6;i++){var v=parseInt($("pw"+i).value,10);st.pw[i]=isNaN(v)||v<0?st.pw[i]:v}
+    save();draw();
+  };
+  draw();
+})();
+</script>
+</body>
+</html>
