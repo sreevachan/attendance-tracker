@@ -3,7 +3,7 @@ import WebKit
 import WidgetKit
 
 // Change this to your own App Group ID (same one in the widget file).
-let appGroup = "group.com.yourname.attendance"
+let appGroup = "group.sreevachan.attendance"
 
 struct WebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }

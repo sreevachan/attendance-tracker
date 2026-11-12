@@ -2,7 +2,7 @@ import WidgetKit
 import SwiftUI
 
 // Must match the App Group ID in WebView.swift.
-let widgetGroup = "group.com.yourname.attendance"
+let widgetGroup = "group.sreevachan.attendance"
 
 struct Entry: TimelineEntry {
     let date: Date
