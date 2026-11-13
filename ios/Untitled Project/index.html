@@ -65,10 +65,24 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
 .msg{font-size:.85rem;margin-top:8px;min-height:1.2em}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .chip{padding:6px 10px;font-size:.8rem}
+#setCard{display:none}
+#setCard.page{display:block;position:fixed;inset:0;z-index:30;margin:0;border-radius:0;overflow:auto;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(28px + env(safe-area-inset-bottom,0px))}
+#setCard .row{flex-direction:column;gap:10px}
+#setCard .row>div{flex:none}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.topbar h1{margin:0;font-size:1.3rem}
+#gear{font-size:1.5rem;line-height:1;padding:6px 12px}
+select{font:inherit;font-size:1rem;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+a{color:var(--accent)}
+.sec{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.wiz{position:fixed;inset:0;background:var(--bg);z-index:30;overflow:auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wizin{max-width:480px;margin:0 auto;padding:20px 16px 40px}
+.wiz h2{margin:4px 0 16px;font-size:1.4rem}
 </style>
 </head>
 <body>
 <main>
+<div class="topbar"><h1>Attendance</h1><button id="gear" aria-label="Settings" title="Settings">&#9881;&#xFE0E;</button></div>
 <div class="notice" id="notice" role="alert" hidden></div>
 <section class="card" aria-live="polite">
   <div class="top">
@@ -118,11 +132,25 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
   <p class="small">Every unmarked day (except Sundays) before that date counts as a working day. Mark holidays on the calendar and this updates.</p>
 </section>
 
-<section class="card">
-  <h4 id="baseTitle">Starting numbers</h4>
+<section class="card" id="setCard">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><h3 id="setTitle" style="margin:0;font-size:1.2rem">Settings</h3><button id="setClose" type="button">Close</button></div>
+  <p class="small" id="setSub" style="margin:0 0 12px"></p>
+  <h4>Profile</h4>
+  <label for="pName">Name</label><input id="pName" maxlength="60" autocomplete="name">
+  <label for="pCol" style="margin-top:10px">College</label><input id="pCol" maxlength="100">
+  <label for="pRoll" style="margin-top:10px">Roll number</label><input id="pRoll" maxlength="30">
+  <div class="sec"><h4 id="baseTitle">Starting numbers</h4>
   <div class="row">
     <div><label for="A0">Attended</label><input id="A0" type="number" min="0" inputmode="numeric"></div>
     <div><label for="C0">Conducted</label><input id="C0" type="number" min="0" inputmode="numeric"></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div><label for="asOf">Numbers are up to (date)</label><input id="asOf" type="date"></div>
+  </div>
+  <p class="small" id="chk"></p>
+  <div class="row" style="margin-top:6px">
+    <div><label for="knownPct">Only know your percentage? Enter it here</label><input id="knownPct" type="number" min="1" max="100" step="0.1" inputmode="decimal"></div>
+    <div><button id="calcC" type="button" style="width:100%">Work out conducted</button></div>
   </div>
   <div class="row" style="margin-top:10px">
     <div><label for="minP">Minimum attendance (%)</label><input id="minP" type="number" min="1" max="100" inputmode="numeric"></div>
@@ -131,8 +159,18 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
     <div><label>Periods per weekday: Mon to Sat</label>
       <div class="row" id="pw"></div></div>
   </div>
-  <button style="margin-top:12px" id="save0">Save</button>
+  </div>
+  <div class="sec"><h4>Appearance</h4>
+    <label for="theme">Theme</label>
+    <select id="theme"><option value="system">System default</option><option value="light">Light</option><option value="dark">Dark</option></select>
+  </div>
+  <button style="margin-top:14px" id="save0">Save</button>
   <div class="msg" id="msg" role="alert"></div>
+  <div class="sec" id="about"><h4>About</h4>
+    <p class="small" style="margin:0">Version <span id="ver"></span>. Your data is stored on this device. Encrypted cloud backup arrives with sign-in.</p>
+    <p class="small"><a href="https://github.com/sreevachan/attendance-tracker/issues/new">Report a bug or suggest a feature</a></p>
+    <p class="small">Made by Sreevachan</p>
+  </div>
 </section>
 </main>
 
@@ -161,7 +199,7 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
   var canSave=true,notice="";
 
   function defaults(){
-    return {v:3,settings:{minPct:75},pw:[0,6,5,6,6,6,5],
+    return {v:3,settings:{minPct:75,theme:"system"},profile:null,pw:[0,6,5,6,6,6,5],
       base:{a:30,c:40,asOf:OLD_BASE_END},days:{},exam:"2027-06-30"};
   }
   function dowOf(k){var a=k.split("-");return new Date(+a[0],+a[1]-1,+a[2]).getDay()}
@@ -210,9 +248,12 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
   }
 
   var st=load();
+  var VERSION="2.0.0-dev";
+  st.settings.theme=st.settings.theme||"system";if(st.profile===undefined)st.profile=null;
   function save(){if(!canSave)return;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
 
   var $=function(i){return document.getElementById(i)};
+  function applyTheme(){var t=st.settings.theme,r=document.documentElement;if(t==="light"||t==="dark")r.setAttribute("data-theme",t);else r.removeAttribute("data-theme")}
   var now=new Date(),view=new Date(now.getFullYear(),now.getMonth(),1),sel=null,armed=false;
   function key(y,m,d){return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
   function keyOf(d){return key(d.getFullYear(),d.getMonth(),d.getDate())}
@@ -337,25 +378,60 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
 
   var pw=$("pw");["Mon","Tue","Wed","Thu","Fri","Sat"].forEach(function(n,i){
     var w=document.createElement("div"),inp=document.createElement("input");inp.type="number";inp.min=0;inp.max=12;inp.id="pw"+(i+1);inp.setAttribute("aria-label",n);inp.value=st.pw[i+1];
-    var l=document.createElement("div");l.className="lbl";l.textContent=n;w.appendChild(inp);w.appendChild(l);pw.appendChild(w)});
-  $("A0").value=st.base.a;$("C0").value=st.base.c;$("minP").value=MIN();
+    var l=document.createElement("div");l.className="lbl";l.textContent=n;w.appendChild(l);w.appendChild(inp);pw.appendChild(w)});
+  function fillForm(){
+    $("A0").value=st.base.a;$("C0").value=st.base.c;$("minP").value=MIN();$("asOf").value=st.base.asOf;
+    var p=st.profile||{};$("pName").value=p.name||"";$("pCol").value=p.college||"";$("pRoll").value=p.roll||"";
+    $("theme").value=st.settings.theme;$("ver").textContent=VERSION;updateChk();
+    for(var i=1;i<=6;i++)$("pw"+i).value=st.pw[i];
+  }
+  // First run: the settings card opens full screen as a setup form.
+  function setupMode(on){
+    var c=$("setCard");if(on){c.classList.add("page");c.scrollTop=0}
+    $("setTitle").textContent=on?"Welcome":"Settings";
+    $("setSub").textContent=on?"Enter your details once. Your numbers are filled in already, so check them and continue.":"";
+    $("save0").textContent=on?"Save and continue":"Save";
+    $("about").hidden=on;$("setClose").hidden=on;
+  }
+  function openSettings(){fillForm();msg("",false);var c=$("setCard");c.classList.add("page");c.scrollTop=0}
+  function closeSettings(){$("setCard").classList.remove("page")}
   function msg(t,bad){var m=$("msg");m.textContent=t;m.className="msg "+(bad?"bad":"good")}
+  function updateChk(){
+    var a=parseInt($("A0").value,10),c=parseInt($("C0").value,10);
+    $("chk").textContent=(!isNaN(a)&&!isNaN(c)&&c>0&&a<=c)?"With these numbers: "+fmt(a/c*100):"";
+  }
+  $("A0").oninput=updateChk;$("C0").oninput=updateChk;
+  $("calcC").onclick=function(){
+    var a=parseInt($("A0").value,10),p=parseFloat($("knownPct").value);
+    if(isNaN(a)||a<0||isNaN(p)||p<=0||p>100){msg("Enter attended and a percentage between 1 and 100.",true);return}
+    var c=Math.round(a*100/p);$("C0").value=c;updateChk();
+    msg("Conducted set to "+c+". Change it if it looks off.",false);
+  };
+  $("theme").onchange=function(){st.settings.theme=this.value;save();applyTheme()};
   $("save0").onclick=function(){
-    var a=parseInt($("A0").value,10),c=parseInt($("C0").value,10),m=parseInt($("minP").value,10),w=[],err="",i;
-    if(isNaN(a)||isNaN(c)||a<0||c<0)err="Enter attended and conducted as whole numbers.";
+    var nm=$("pName").value.trim(),cl=$("pCol").value.trim(),rl=$("pRoll").value.trim();
+    var a=parseInt($("A0").value,10),c=parseInt($("C0").value,10),m=parseInt($("minP").value,10),ad=$("asOf").value,w=[],err="",i;
+    if(!nm||!cl||!rl)err="Enter your name, college and roll number.";
+    else if(isNaN(a)||isNaN(c)||a<0||c<0)err="Enter attended and conducted as whole numbers.";
     else if(a>c)err="Attended can't be more than conducted.";
+    else if(!/^\d{4}-\d{2}-\d{2}$/.test(ad)||ad>todayKey())err="Pick the date your numbers are up to (today or earlier).";
     else if(isNaN(m)||m<1||m>100)err="Minimum attendance must be between 1 and 100.";
     for(i=1;i<=6&&!err;i++){var v=parseInt($("pw"+i).value,10);if(isNaN(v)||v<0||v>12)err="Periods per day must be from 0 to 12.";w[i]=v}
     if(err){msg(err,true);return}
+    var first=!st.profile;st.profile={name:nm,college:cl,roll:rl};
     st.base.a=a;st.base.c=c;st.settings.minPct=m;
+    // Days on or before the new date are covered by the totals, so they are dropped.
+    if(ad!==st.base.asOf){st.base.asOf=ad;Object.keys(st.days).forEach(function(k){if(k<=ad)delete st.days[k]})}
     for(i=1;i<=6;i++)st.pw[i]=w[i];
-    save();draw();msg("Saved.",false);
+    save();setupMode(false);if(first)closeSettings();draw();msg("Saved.",false);
   };
 
   // Keep "today" correct if the app stays open past midnight.
   function refreshNow(){var n=new Date();if(keyOf(n)!==todayKey()){now=n;draw()}}
   document.addEventListener("visibilitychange",function(){if(!document.hidden)refreshNow()});
   setInterval(refreshNow,60000);
+  $("gear").onclick=openSettings;$("setClose").onclick=closeSettings;
+  applyTheme();fillForm();setupMode(!st.profile);
   draw();
 })();
 </script>

@@ -12,6 +12,8 @@ struct WebView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         config.userContentController.add(context.coordinator, name: "att")
         let web = WKWebView(frame: .zero, configuration: config)
+        web.navigationDelegate = context.coordinator
+        web.uiDelegate = context.coordinator
         web.scrollView.contentInsetAdjustmentBehavior = .never
 
         // Same colours as the page background, so there is no white flash in dark mode.
@@ -35,7 +37,7 @@ struct WebView: UIViewRepresentable {
 
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
-    class Coordinator: NSObject, WKScriptMessageHandler {
+    class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
         func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
             guard let d = m.body as? [String: Any], let s = UserDefaults(suiteName: appGroup) else { return }
             s.set((d["pct"] as? NSNumber)?.doubleValue ?? 0, forKey: "pct")
@@ -43,6 +45,25 @@ struct WebView: UIViewRepresentable {
             s.set((d["c"] as? NSNumber)?.intValue ?? 0, forKey: "c")
             s.set((d["min"] as? NSNumber)?.doubleValue ?? 75, forKey: "min")
             WidgetCenter.shared.reloadAllTimelines()
+        }
+
+        // Links to the web (such as "Report a bug") open in Safari instead of replacing the app.
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if navigationAction.navigationType == .linkActivated,
+               let url = navigationAction.request.url,
+               url.scheme == "https" || url.scheme == "http" || url.scheme == "mailto" {
+                UIApplication.shared.open(url)
+                decisionHandler(.cancel)
+            } else {
+                decisionHandler(.allow)
+            }
+        }
+
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                     for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+            if let url = navigationAction.request.url { UIApplication.shared.open(url) }
+            return nil
         }
     }
 }
