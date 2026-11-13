@@ -1,7 +1,7 @@
 import WidgetKit
 import SwiftUI
 
-// Must match the App Group ID in WebView.swift.
+// Must match the App Group in WebView.swift and both entitlements files.
 let widgetGroup = "group.sreevachan.attendance"
 
 struct Entry: TimelineEntry {
@@ -9,15 +9,23 @@ struct Entry: TimelineEntry {
     let pct: Double
     let a: Int
     let c: Int
+    let minPct: Double
+    let hasData: Bool
 }
 
 struct Provider: TimelineProvider {
     func load() -> Entry {
         let s = UserDefaults(suiteName: widgetGroup)
+        // "pct" only exists once the app has opened and sent its numbers.
+        let has = s?.object(forKey: "pct") != nil
+        let minPct = (s?.object(forKey: "min") as? Double) ?? 75
         return Entry(date: .now, pct: s?.double(forKey: "pct") ?? 0,
-                     a: s?.integer(forKey: "a") ?? 0, c: s?.integer(forKey: "c") ?? 0)
+                     a: s?.integer(forKey: "a") ?? 0, c: s?.integer(forKey: "c") ?? 0,
+                     minPct: minPct, hasData: has)
     }
-    func placeholder(in context: Context) -> Entry { Entry(date: .now, pct: 75, a: 3, c: 4) }
+    func placeholder(in context: Context) -> Entry {
+        Entry(date: .now, pct: 75, a: 3, c: 4, minPct: 75, hasData: true)
+    }
     func getSnapshot(in context: Context, completion: @escaping (Entry) -> Void) { completion(load()) }
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
         completion(Timeline(entries: [load()], policy: .never))
@@ -26,14 +34,20 @@ struct Provider: TimelineProvider {
 
 struct AttendanceWidgetView: View {
     let e: Entry
-    var color: Color { e.pct >= 75 ? .green : .red }
+    var color: Color { e.pct >= e.minPct ? .green : .red }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Attendance").font(.caption).foregroundStyle(.secondary)
-            Text(String(format: "%.1f%%", e.pct))
-                .font(.system(size: 36, weight: .heavy)).foregroundStyle(color)
-            ProgressView(value: min(max(e.pct, 0), 100), total: 100).tint(color)
-            Text("\(e.a) / \(e.c) classes").font(.caption2).foregroundStyle(.secondary)
+            if e.hasData {
+                Text(String(format: "%.1f%%", e.pct))
+                    .font(.system(size: 36, weight: .heavy)).foregroundStyle(color)
+                ProgressView(value: min(max(e.pct, 0), 100), total: 100).tint(color)
+                Text("\(e.a) / \(e.c) classes").font(.caption2).foregroundStyle(.secondary)
+                Text("Minimum \(Int(e.minPct))%").font(.caption2).foregroundStyle(.secondary)
+            } else {
+                Text("Open the app").font(.headline)
+                Text("to load your attendance").font(.caption2).foregroundStyle(.secondary)
+            }
         }
         .containerBackground(.background, for: .widget)
     }
