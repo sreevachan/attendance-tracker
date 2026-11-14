@@ -72,6 +72,18 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .topbar h1{margin:0;font-size:1.3rem}
 #gear{font-size:1.5rem;line-height:1;padding:6px 12px}
+#setCard #pw{flex-direction:column;gap:8px}
+#setCard #pw>div{display:flex;flex-direction:row-reverse;align-items:center;justify-content:space-between;gap:10px;flex:none}
+#pw input{width:90px;padding:10px;text-align:center}
+#pw .lbl{font-size:.95rem;color:var(--ink);margin:0}
+.upd{display:block;width:100%;margin-bottom:14px;background:var(--accent);color:#fff;border-color:var(--accent)}
+input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--accent)}
+#hero{position:relative;overflow:hidden}
+.big.pop{animation:pop .7s ease;transform-origin:left center}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.15)}100%{transform:scale(1)}}
+.spark{position:absolute;left:32%;top:38%;width:8px;height:8px;border-radius:50%;opacity:0;animation:spark .9s ease-out forwards}
+@keyframes spark{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.4)}}
+@media (prefers-reduced-motion:reduce){.big.pop{animation:none}.spark{display:none}}
 select{font:inherit;font-size:1rem;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
 a{color:var(--accent)}
 .sec{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
@@ -83,8 +95,9 @@ a{color:var(--accent)}
 <body>
 <main>
 <div class="topbar"><h1>Attendance</h1><button id="gear" aria-label="Settings" title="Settings">&#9881;&#xFE0E;</button></div>
+<button class="upd" id="upd" hidden></button>
 <div class="notice" id="notice" role="alert" hidden></div>
-<section class="card" aria-live="polite">
+<section class="card" id="hero" aria-live="polite">
   <div class="top">
     <div><div class="lbl">Overall attendance</div><div class="big" id="pct">–</div></div>
     <div style="text-align:right"><div class="lbl">Status</div><div id="status" style="font-weight:800;font-size:1.1rem"></div></div>
@@ -153,7 +166,7 @@ a{color:var(--accent)}
     <div><button id="calcC" type="button" style="width:100%">Work out conducted</button></div>
   </div>
   <div class="row" style="margin-top:10px">
-    <div><label for="minP">Minimum attendance (%)</label><input id="minP" type="number" min="1" max="100" inputmode="numeric"></div>
+    <div><label for="minP">Minimum attendance: <b id="minVal">75</b>%</label><input id="minP" type="range" min="50" max="100" step="1"></div>
   </div>
   <div class="row" style="margin-top:10px">
     <div><label>Periods per weekday: Mon to Sat</label>
@@ -167,11 +180,11 @@ a{color:var(--accent)}
   <button style="margin-top:14px" id="save0">Save</button>
   <div class="msg" id="msg" role="alert"></div>
   <div class="sec" id="about"><h4>About</h4>
-    <p class="small" style="margin:0">Version <span id="ver"></span>. Your data is stored on this device. Encrypted cloud backup arrives with sign-in.</p>
+    <p class="small" style="margin:0">Your data is stored on this device. Encrypted cloud backup arrives with sign-in.</p>
     <p class="small"><a href="https://github.com/sreevachan/attendance-tracker/issues/new">Report a bug or suggest a feature</a></p>
-    <p class="small">Made by Sreevachan</p>
   </div>
 </section>
+<p class="small" style="text-align:center;margin-top:18px">Made by Sreevachan &middot; Version <span id="ver"></span></p>
 </main>
 
 <div class="sheet" id="sheet">
@@ -248,13 +261,13 @@ a{color:var(--accent)}
   }
 
   var st=load();
-  var VERSION="2.0.0-dev";
+  var VERSION="2.0.0",BUILD=2,VERSION_URL="https://raw.githubusercontent.com/sreevachan/attendance-tracker/main/version.json";
   st.settings.theme=st.settings.theme||"system";if(st.profile===undefined)st.profile=null;
   function save(){if(!canSave)return;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
 
   var $=function(i){return document.getElementById(i)};
   function applyTheme(){var t=st.settings.theme,r=document.documentElement;if(t==="light"||t==="dark")r.setAttribute("data-theme",t);else r.removeAttribute("data-theme")}
-  var now=new Date(),view=new Date(now.getFullYear(),now.getMonth(),1),sel=null,armed=false;
+  var now=new Date(),view=new Date(now.getFullYear(),now.getMonth(),1),sel=null,armed=false,wasOk=null;
   function key(y,m,d){return y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
   function keyOf(d){return key(d.getFullYear(),d.getMonth(),d.getDate())}
   function todayKey(){return keyOf(now)}
@@ -288,6 +301,7 @@ a{color:var(--accent)}
     try{window.webkit.messageHandlers.att.postMessage({pct:p,a:A,c:C,min:MIN()})}catch(e){}
     $("notice").hidden=!notice;$("notice").textContent=notice;
     $("pct").textContent=fmt(p);$("pct").className="big "+(ok?"good":"bad");document.title=fmt(p)+" attendance";
+    if(wasOk===false&&ok)celebrate();wasOk=ok;
     $("fill").style.width=Math.min(100,p)+"%";
     $("mark").style.left=MIN()+"%";$("minLbl").style.left=MIN()+"%";$("minLbl").textContent=MIN()+"% minimum";
     $("status").innerHTML=ok?'<span class="good">Above '+MIN()+'%</span>':'<span class="bad">Below '+MIN()+'%</span>';
@@ -340,6 +354,20 @@ a{color:var(--accent)}
     $("plan").innerHTML=h;
   }
 
+  // Small celebration when the percentage moves from below the minimum to at or above it.
+  function celebrate(){
+    if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+    var hero=$("hero"),big=$("pct"),cols=["var(--good)","var(--accent)","var(--warn)"],i;
+    big.classList.remove("pop");void big.offsetWidth;big.classList.add("pop");
+    for(i=0;i<14;i++){
+      var sp=document.createElement("i"),ang=i/14*2*Math.PI,dist=60+Math.random()*50;
+      sp.className="spark";sp.style.background=cols[i%3];
+      sp.style.setProperty("--dx",Math.round(Math.cos(ang)*dist)+"px");
+      sp.style.setProperty("--dy",Math.round(Math.sin(ang)*dist)+"px");
+      hero.appendChild(sp);
+      setTimeout(function(e){return function(){if(e.parentNode)e.parentNode.removeChild(e)}}(sp),1000);
+    }
+  }
   function openSheet(k){
     sel=k;$("sErr").textContent="";
     $("sTitle").textContent=niceDate(k,{weekday:"long",day:"numeric",month:"long"})+" ("+dayN(k)+" classes)";
@@ -376,11 +404,11 @@ a{color:var(--accent)}
     armed=false;save();draw();
   };
 
-  var pw=$("pw");["Mon","Tue","Wed","Thu","Fri","Sat"].forEach(function(n,i){
+  var pw=$("pw");["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].forEach(function(n,i){
     var w=document.createElement("div"),inp=document.createElement("input");inp.type="number";inp.min=0;inp.max=12;inp.id="pw"+(i+1);inp.setAttribute("aria-label",n);inp.value=st.pw[i+1];
-    var l=document.createElement("div");l.className="lbl";l.textContent=n;w.appendChild(l);w.appendChild(inp);pw.appendChild(w)});
+    var l=document.createElement("div");l.className="lbl";l.textContent=n;w.appendChild(inp);w.appendChild(l);pw.appendChild(w)});
   function fillForm(){
-    $("A0").value=st.base.a;$("C0").value=st.base.c;$("minP").value=MIN();$("asOf").value=st.base.asOf;
+    $("A0").value=st.base.a;$("C0").value=st.base.c;$("minP").value=MIN();$("minVal").textContent=MIN();$("asOf").value=st.base.asOf;
     var p=st.profile||{};$("pName").value=p.name||"";$("pCol").value=p.college||"";$("pRoll").value=p.roll||"";
     $("theme").value=st.settings.theme;$("ver").textContent=VERSION;updateChk();
     for(var i=1;i<=6;i++)$("pw"+i).value=st.pw[i];
@@ -400,6 +428,7 @@ a{color:var(--accent)}
     var a=parseInt($("A0").value,10),c=parseInt($("C0").value,10);
     $("chk").textContent=(!isNaN(a)&&!isNaN(c)&&c>0&&a<=c)?"With these numbers: "+fmt(a/c*100):"";
   }
+  $("minP").oninput=function(){$("minVal").textContent=this.value};
   $("A0").oninput=updateChk;$("C0").oninput=updateChk;
   $("calcC").onclick=function(){
     var a=parseInt($("A0").value,10),p=parseFloat($("knownPct").value);
@@ -428,8 +457,32 @@ a{color:var(--accent)}
 
   // Keep "today" correct if the app stays open past midnight.
   function refreshNow(){var n=new Date();if(keyOf(n)!==todayKey()){now=n;draw()}}
-  document.addEventListener("visibilitychange",function(){if(!document.hidden)refreshNow()});
+  // Update check: reads version.json from the repo. The button shows only when a newer build exists.
+  var updInfo=null,GH="https://github.com/sreevachan/";
+  function platform(){
+    if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.att)return "ios";
+    if(window.AndroidBridge)return "android";
+    return "web";
+  }
+  function checkUpdate(){
+    if(!window.fetch)return;
+    fetch(VERSION_URL,{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){
+      if(!j||typeof j.build!=="number"||j.build<=BUILD){$("upd").hidden=true;return}
+      updInfo=j;var b=$("upd"),v=String(j.version).slice(0,20);b.hidden=false;
+      b.textContent=platform()==="web"?"New version "+v+" is ready. Tap to refresh":"Update available: "+v+". Tap to update";
+    }).catch(function(){});
+  }
+  $("upd").onclick=function(){
+    if(!updInfo)return;
+    var p=platform();
+    if(p==="web"){location.reload();return}
+    if(p==="android"&&window.AndroidBridge&&AndroidBridge.installUpdate&&typeof updInfo.apkUrl==="string"&&updInfo.apkUrl.indexOf(GH)===0){AndroidBridge.installUpdate(updInfo.apkUrl);return}
+    var u=(typeof updInfo.releaseUrl==="string"&&updInfo.releaseUrl.indexOf(GH)===0)?updInfo.releaseUrl:GH+"attendance-tracker/releases/latest";
+    window.open(u,"_blank");
+  };
+  document.addEventListener("visibilitychange",function(){if(!document.hidden){refreshNow();checkUpdate()}});
   setInterval(refreshNow,60000);
+  checkUpdate();
   $("gear").onclick=openSettings;$("setClose").onclick=closeSettings;
   applyTheme();fillForm();setupMode(!st.profile);
   draw();
