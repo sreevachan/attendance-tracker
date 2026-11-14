@@ -10,7 +10,23 @@
       "Base",
     ],
   },
+  "packages": [
+    {
+      "kind": "remote",
+      "repository": "https://github.com/firebase/firebase-ios-sdk",
+      "version": {
+        "up-to-next-major-version": "13.2.0",
+      },
+    }, {
+      "kind": "remote",
+      "repository": "https://github.com/google/GoogleSignIn-iOS",
+      "version": {
+        "up-to-next-major-version": "10.1.0",
+      },
+    },
+  ],
   "files": [
+    { "path": "Untitled-Project-Info.plist" },
     { "path": "AttendenceWidgetExtension.entitlements" },
     { "kind": "folder", "path": "Untitled Project", "target-membership": [ "Untitled Project" ] },
     {
@@ -62,6 +78,21 @@
           "bundle-base-path": "plugins-directory",
         },
       ],
+      "package-product-members": [
+        {
+          "package": "GoogleSignIn-iOS",
+          "product-name": "GoogleSignIn",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "firebase-ios-sdk",
+          "product-name": "FirebaseAuth",
+          "build-phase": { "build-phase": "frameworks" },
+        }, {
+          "package": "firebase-ios-sdk",
+          "product-name": "FirebaseCore",
+          "build-phase": { "build-phase": "frameworks" },
+        },
+      ],
       "build-settings": {
         "CODE_SIGN_ENTITLEMENTS": "Untitled Project/Untitled Project.entitlements",
         "CODE_SIGN_STYLE": "Automatic",
@@ -69,6 +100,7 @@
         "ENABLE_APP_SANDBOX": "NO",
         "ENABLE_PREVIEWS": "YES",
         "GENERATE_INFOPLIST_FILE": "YES",
+        "INFOPLIST_FILE": "Untitled-Project-Info.plist",
         "INFOPLIST_KEY_CFBundleDisplayName": "Attendance",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]": "YES",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]": "YES",

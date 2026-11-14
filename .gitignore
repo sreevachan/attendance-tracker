@@ -8,3 +8,8 @@ google-services.json
 *.keystore
 *.jks
 .env
+GoogleService-Info.plist
+google-services.json
+*.keystore
+*.jks
+.env
