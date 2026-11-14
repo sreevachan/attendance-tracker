@@ -77,6 +77,9 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
 #pw input{width:90px;padding:10px;text-align:center}
 #pw .lbl{font-size:.95rem;color:var(--ink);margin:0}
 .upd{display:block;width:100%;margin-bottom:14px;background:var(--accent);color:#fff;border-color:var(--accent)}
+.gate{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.gcard{width:100%;max-width:360px;text-align:center}
+.gcard h1{margin:0 0 8px;font-size:1.8rem}
 input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--accent)}
 #hero{position:relative;overflow:hidden}
 .big.pop{animation:pop .7s ease;transform-origin:left center}
@@ -179,6 +182,13 @@ a{color:var(--accent)}
   </div>
   <button style="margin-top:14px" id="save0">Save</button>
   <div class="msg" id="msg" role="alert"></div>
+  <div class="sec" id="acct"><h4>Account</h4>
+    <p class="small" id="acctInfo" style="margin:0 0 8px"></p>
+    <button id="outBtn" type="button">Sign out</button>
+    <button id="delBtn" type="button" class="ba">Delete account</button>
+    <div class="msg" id="acctMsg" role="alert"></div>
+    <p class="small">Deleting your account erases the data on this device and signs you out for good.</p>
+  </div>
   <div class="sec" id="about"><h4>About</h4>
     <p class="small" style="margin:0">Your data is stored on this device. Encrypted cloud backup arrives with sign-in.</p>
     <p class="small"><a href="https://github.com/sreevachan/attendance-tracker/issues/new">Report a bug or suggest a feature</a></p>
@@ -186,6 +196,17 @@ a{color:var(--accent)}
 </section>
 <p class="small" style="text-align:center;margin-top:18px">Made by Sreevachan &middot; Version <span id="ver"></span></p>
 </main>
+
+<div class="gate" id="gate" hidden>
+  <div class="gcard">
+    <h1>Attendance</h1>
+    <p class="small" style="margin:0 0 16px">Sign in with Google to continue.</p>
+    <button class="upd" id="gSign">Sign in with Google</button>
+    <div class="msg bad" id="gErr" role="alert"></div>
+    <button id="gOut" hidden style="margin-top:8px;width:100%">Use a different account</button>
+    <button id="gErase" hidden style="margin-top:8px;width:100%">Erase this device's data and continue</button>
+  </div>
+</div>
 
 <div class="sheet" id="sheet">
   <div class="panel" role="dialog" aria-modal="true">
@@ -261,6 +282,7 @@ a{color:var(--accent)}
   }
 
   var st=load();
+  var AUTH=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.auth;
   var VERSION="2.0.0",BUILD=2,VERSION_URL="https://raw.githubusercontent.com/sreevachan/attendance-tracker/main/version.json";
   st.settings.theme=st.settings.theme||"system";if(st.profile===undefined)st.profile=null;
   function save(){if(!canSave)return;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
@@ -419,7 +441,7 @@ a{color:var(--accent)}
     $("setTitle").textContent=on?"Welcome":"Settings";
     $("setSub").textContent=on?"Enter your details once. Your numbers are filled in already, so check them and continue.":"";
     $("save0").textContent=on?"Save and continue":"Save";
-    $("about").hidden=on;$("setClose").hidden=on;
+    $("about").hidden=on;$("acct").hidden=on||!AUTH;$("setClose").hidden=on;
   }
   function openSettings(){fillForm();msg("",false);var c=$("setCard");c.classList.add("page");c.scrollTop=0}
   function closeSettings(){$("setCard").classList.remove("page")}
@@ -483,6 +505,42 @@ a{color:var(--accent)}
   document.addEventListener("visibilitychange",function(){if(!document.hidden){refreshNow();checkUpdate()}});
   setInterval(refreshNow,60000);
   checkUpdate();
+  // Google sign-in is required. The iPhone app does the sign-in itself; this page only shows the screens.
+  var acct=null,eraseArmed=false,delArmed=false;
+  function authPost(a){try{AUTH.postMessage({action:a});return true}catch(e){return false}}
+  function showGate(on,err){
+    $("gate").hidden=!on;$("gErr").textContent=err||"";
+    $("gSign").hidden=false;$("gSign").disabled=false;$("gErase").hidden=true;$("gOut").hidden=true;
+  }
+  function wipeLocal(){try{localStorage.removeItem(KEY);localStorage.removeItem(OLD);localStorage.removeItem(OLD_BAK)}catch(e){}}
+  window.onAuth=function(a){
+    if(!a||!a.signedIn){acct=null;showGate(true);return}
+    if(st.uid&&st.uid!==a.uid){
+      showGate(true,"This device holds data for a different account. Use that account, or erase this device's data.");
+      $("gErase").hidden=false;$("gOut").hidden=false;return;
+    }
+    if(!st.uid){st.uid=a.uid;save()}
+    acct=a;showGate(false);
+    $("acctInfo").textContent="Signed in as "+(a.email||a.name||"your account");
+    draw();
+  };
+  window.onAuthError=function(m){
+    if(acct){var e=$("acctMsg");e.textContent=m;e.className="msg bad";delArmed=false;$("delBtn").textContent="Delete account"}
+    else showGate(true,m);
+  };
+  window.onDeleted=function(){wipeLocal();location.reload()};
+  $("gSign").onclick=function(){$("gSign").disabled=true;$("gErr").textContent="";if(!authPost("signIn"))showGate(true,"Sign-in is not available here yet.")};
+  $("gOut").onclick=function(){authPost("signOut")};
+  $("gErase").onclick=function(){
+    if(!eraseArmed){eraseArmed=true;$("gErase").textContent="Tap again to erase this device's data";setTimeout(function(){eraseArmed=false;$("gErase").textContent="Erase this device's data and continue"},4000);return}
+    wipeLocal();location.reload();
+  };
+  $("outBtn").onclick=function(){closeSettings();authPost("signOut")};
+  $("delBtn").onclick=function(){
+    if(!delArmed){delArmed=true;$("delBtn").textContent="Tap again to delete everything";setTimeout(function(){delArmed=false;$("delBtn").textContent="Delete account"},4000);return}
+    delArmed=false;$("delBtn").textContent="Delete account";authPost("delete");
+  };
+  if(AUTH){showGate(true);$("gSign").hidden=true;authPost("status")}
   $("gear").onclick=openSettings;$("setClose").onclick=closeSettings;
   applyTheme();fillForm();setupMode(!st.profile);
   draw();

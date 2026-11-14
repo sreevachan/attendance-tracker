@@ -8,7 +8,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>GoogleSignIn</string>
+			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.googleusercontent.apps.252190190323-rtr70alau832uu67ju4e9f3559t4s1uc</string>
