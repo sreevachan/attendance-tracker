@@ -80,6 +80,20 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
 .gate{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
 .gcard{width:100%;max-width:360px;text-align:center}
 .gcard h1{margin:0 0 8px;font-size:1.8rem}
+.welcome{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.wcard{width:100%;max-width:360px;text-align:center}
+.wcard h1{margin:18px 0 8px;font-size:1.7rem}
+.wcard p{color:var(--mute);margin:0 0 22px}
+#lock{display:block;margin:0 auto}
+#shackle{fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round}
+.lk{fill:var(--accent)}
+@keyframes lockClose{0%,45%{transform:translateY(-14px) rotate(24deg)}78%{transform:translateY(3px) rotate(-2deg)}100%{transform:translateY(0) rotate(0)}}
+@keyframes lockGlow{0%,70%{filter:drop-shadow(0 0 0 transparent)}85%{filter:drop-shadow(0 0 16px var(--accent))}100%{filter:drop-shadow(0 0 0 transparent)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#shackle{transform-box:fill-box;transform-origin:100% 100%;animation:lockClose 1.7s cubic-bezier(.4,0,.2,1) .3s both}
+#lock{animation:lockGlow 1.7s ease .3s both}
+.wcard h1,.wcard p,.wcard button{opacity:0;animation:fadeUp .6s ease 1.8s both}
+@media (prefers-reduced-motion:reduce){#shackle,#lock,.wcard h1,.wcard p,.wcard button{animation:none;opacity:1}}
 input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--accent)}
 #hero{position:relative;overflow:hidden}
 .big.pop{animation:pop .7s ease;transform-origin:left center}
@@ -184,10 +198,11 @@ a{color:var(--accent)}
   <div class="msg" id="msg" role="alert"></div>
   <div class="sec" id="acct"><h4>Account</h4>
     <p class="small" id="acctInfo" style="margin:0 0 8px"></p>
+    <button id="linkBtn" type="button" class="upd" hidden>Sign in with Google</button>
     <button id="outBtn" type="button">Sign out</button>
     <button id="delBtn" type="button" class="ba">Delete account</button>
     <div class="msg" id="acctMsg" role="alert"></div>
-    <p class="small">Deleting your account erases the data on this device and signs you out for good.</p>
+    <p class="small" id="delNote">Deleting your account erases the data on this device and signs you out for good.</p>
   </div>
   <div class="sec" id="about"><h4>About</h4>
     <p class="small" style="margin:0">Your data is stored on this device. Encrypted cloud backup arrives with sign-in.</p>
@@ -197,12 +212,27 @@ a{color:var(--accent)}
 <p class="small" style="text-align:center;margin-top:18px">Made by Sreevachan &middot; Version <span id="ver"></span></p>
 </main>
 
+<div class="welcome" id="welcome" hidden>
+  <div class="wcard">
+    <svg id="lock" viewBox="0 0 120 140" width="120" height="140" aria-hidden="true">
+      <path id="shackle" d="M38 62 V42 a22 22 0 0 1 44 0 V62"/>
+      <rect class="lk" x="22" y="62" width="76" height="62" rx="14"/>
+      <circle cx="60" cy="88" r="7" fill="#fff"/><rect x="57" y="92" width="6" height="14" rx="3" fill="#fff"/>
+    </svg>
+    <h1>Your attendance, private.</h1>
+    <p id="wText"></p>
+    <button class="upd" id="wGo">Continue</button>
+  </div>
+</div>
+
 <div class="gate" id="gate" hidden>
   <div class="gcard">
     <h1>Attendance</h1>
     <p class="small" style="margin:0 0 16px">Sign in with Google to continue.</p>
     <button class="upd" id="gSign">Sign in with Google</button>
     <div class="msg bad" id="gErr" role="alert"></div>
+    <button id="gGuest" style="margin-top:8px;width:100%">Continue without an account</button>
+    <p class="small" id="gWarn" hidden>Without an account, your data stays only on this phone. If you delete the app or lose the phone, it can't be recovered. You can sign in later.</p>
     <button id="gOut" hidden style="margin-top:8px;width:100%">Use a different account</button>
     <button id="gErase" hidden style="margin-top:8px;width:100%">Erase this device's data and continue</button>
   </div>
@@ -506,26 +536,33 @@ a{color:var(--accent)}
   setInterval(refreshNow,60000);
   checkUpdate();
   // Google sign-in is required. The iPhone app does the sign-in itself; this page only shows the screens.
-  var acct=null,eraseArmed=false,delArmed=false;
+  var acct=null,eraseArmed=false,delArmed=false,guestArmed=false;
   function authPost(a){try{AUTH.postMessage({action:a});return true}catch(e){return false}}
   function showGate(on,err){
     $("gate").hidden=!on;$("gErr").textContent=err||"";
     $("gSign").hidden=false;$("gSign").disabled=false;$("gErase").hidden=true;$("gOut").hidden=true;
+    // Guests are only allowed on a device with no account data, so signing out never exposes anyone's data.
+    guestArmed=false;$("gWarn").hidden=true;$("gGuest").textContent="Continue without an account";$("gGuest").hidden=!!st.uid;
+  }
+  function renderAcct(){
+    var g=!acct&&!!st.guest;
+    $("acctInfo").textContent=acct?"Signed in as "+(acct.email||acct.name||"your account"):(g?"You are using the app without an account. If you delete the app or lose this phone, your data can't be recovered.":"");
+    $("linkBtn").hidden=!g;$("outBtn").hidden=!acct;$("delBtn").hidden=!acct;$("delNote").hidden=!acct;
   }
   function wipeLocal(){try{localStorage.removeItem(KEY);localStorage.removeItem(OLD);localStorage.removeItem(OLD_BAK)}catch(e){}}
   window.onAuth=function(a){
-    if(!a||!a.signedIn){acct=null;showGate(true);return}
+    if(!a||!a.signedIn){acct=null;if(!st.guest)showGate(true);renderAcct();return}
     if(st.uid&&st.uid!==a.uid){
       showGate(true,"This device holds data for a different account. Use that account, or erase this device's data.");
       $("gErase").hidden=false;$("gOut").hidden=false;return;
     }
-    if(!st.uid){st.uid=a.uid;save()}
-    acct=a;showGate(false);
-    $("acctInfo").textContent="Signed in as "+(a.email||a.name||"your account");
-    draw();
+    // First sign-in on this device (including a guest signing in): the data already here becomes this account's.
+    if(!st.uid)st.uid=a.uid;
+    st.guest=false;save();
+    acct=a;showGate(false);renderAcct();draw();
   };
   window.onAuthError=function(m){
-    if(acct){var e=$("acctMsg");e.textContent=m;e.className="msg bad";delArmed=false;$("delBtn").textContent="Delete account"}
+    if(acct||st.guest){var e=$("acctMsg");e.textContent=m;e.className="msg bad";delArmed=false;$("delBtn").textContent="Delete account"}
     else showGate(true,m);
   };
   window.onDeleted=function(){wipeLocal();location.reload()};
@@ -540,7 +577,21 @@ a{color:var(--accent)}
     if(!delArmed){delArmed=true;$("delBtn").textContent="Tap again to delete everything";setTimeout(function(){delArmed=false;$("delBtn").textContent="Delete account"},4000);return}
     delArmed=false;$("delBtn").textContent="Delete account";authPost("delete");
   };
-  if(AUTH){showGate(true);$("gSign").hidden=true;authPost("status")}
+  $("gGuest").onclick=function(){
+    if(!guestArmed){guestArmed=true;$("gWarn").hidden=false;$("gGuest").textContent="I understand, continue without an account";return}
+    guestArmed=false;st.guest=true;save();showGate(false);renderAcct();draw();
+  };
+  $("linkBtn").onclick=function(){$("acctMsg").textContent="";authPost("signIn")};
+  if(AUTH&&!st.guest){showGate(true);$("gSign").hidden=true;$("gGuest").hidden=true;authPost("status")}
+  else if(AUTH)renderAcct();
+  // Welcome screen, shown once on first open. The encryption line appears only once encryption is really on.
+  var ENCRYPTION_ON=false,WKEY="attendance-welcomed";
+  function showWelcome(){
+    $("wText").textContent=ENCRYPTION_ON?"End-to-end encrypted. Only you can read your attendance, not even the developer.":"Your attendance is stored privately on this device.";
+    $("welcome").hidden=false;
+  }
+  $("wGo").onclick=function(){try{localStorage.setItem(WKEY,"1")}catch(e){}$("welcome").hidden=true};
+  try{if(!localStorage.getItem(WKEY))showWelcome()}catch(e){showWelcome()}
   $("gear").onclick=openSettings;$("setClose").onclick=closeSettings;
   applyTheme();fillForm();setupMode(!st.profile);
   draw();
