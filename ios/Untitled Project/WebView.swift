@@ -3,6 +3,7 @@ import WebKit
 import WidgetKit
 import FirebaseCore
 import FirebaseAuth
+import FirebaseFirestore
 import GoogleSignIn
 
 // Must match the App Group in both entitlements files and AttendanceWidget.swift.
@@ -13,9 +14,13 @@ let appGroup = "group.sreevachan.attendance"
 final class AuthBridge {
     weak var web: WKWebView?
 
-    func handle(_ action: String) {
+    func handle(_ body: [String: Any]) {
+        guard let action = body["action"] as? String else { return }
         switch action {
         case "status": sendStatus()
+        case "cloudGet": cloudGet()
+        case "cloudDelete": cloudDelete()
+        case "cloudPut": if let doc = body["doc"] as? [String: Any] { cloudPut(doc) }
         case "signIn": signIn(reauthAndDelete: false)
         case "delete": signIn(reauthAndDelete: true)
         case "signOut": signOut()
@@ -40,11 +45,15 @@ final class AuthBridge {
                 guard let current = Auth.auth().currentUser else { self.fail("You are not signed in."); return }
                 current.reauthenticate(with: cred) { _, err in
                     if err != nil { self.fail("Could not confirm your identity."); return }
-                    current.delete { err in
-                        if err != nil { self.fail("Could not delete the account. Try again."); return }
-                        GIDSignIn.sharedInstance.signOut()
-                        self.clearWidget()
-                        self.run("window.onDeleted&&window.onDeleted()")
+                    // The encrypted backup goes first, while the account can still delete it.
+                    Firestore.firestore().collection("users").document(current.uid).delete { err in
+                        if err != nil { self.fail("Could not delete your backup. Check your connection."); return }
+                        current.delete { err in
+                            if err != nil { self.fail("Could not delete the account. Try again."); return }
+                            GIDSignIn.sharedInstance.signOut()
+                            self.clearWidget()
+                            self.run("window.onDeleted&&window.onDeleted()")
+                        }
                     }
                 }
             } else {
@@ -53,6 +62,32 @@ final class AuthBridge {
                     self.sendStatus()
                 }
             }
+        }
+    }
+
+    // The cloud copy holds only encrypted data and key wrappers. The page does all the encryption.
+    private func cloudGet() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        Firestore.firestore().collection("users").document(uid).getDocument { snap, err in
+            if let err = err { print("cloud get error:", err); self.send("onCloud", ["op": "get", "ok": false]); return }
+            var out: [String: Any] = ["op": "get", "ok": true, "exists": snap?.exists == true]
+            if let d = snap?.data(), JSONSerialization.isValidJSONObject(d) { out["doc"] = d }
+            self.send("onCloud", out)
+        }
+    }
+
+    private func cloudDelete() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        Firestore.firestore().collection("users").document(uid).delete { err in
+            self.send("onCloud", ["op": "delete", "ok": err == nil])
+        }
+    }
+
+    private func cloudPut(_ doc: [String: Any]) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        Firestore.firestore().collection("users").document(uid).setData(doc) { err in
+            if let err = err { print("cloud put error:", err) }
+            self.send("onCloud", ["op": "put", "ok": err == nil])
         }
     }
 
@@ -143,7 +178,7 @@ struct WebView: UIViewRepresentable {
             // Only the app's own page may talk to the native side.
             guard m.frameInfo.request.url?.isFileURL == true else { return }
             if m.name == "auth" {
-                if let d = m.body as? [String: Any], let action = d["action"] as? String { auth.handle(action) }
+                if let d = m.body as? [String: Any] { auth.handle(d) }
                 return
             }
             guard let d = m.body as? [String: Any], let s = UserDefaults(suiteName: appGroup) else { return }

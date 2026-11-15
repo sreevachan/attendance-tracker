@@ -87,6 +87,7 @@ label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
 #lock{display:block;margin:0 auto}
 #shackle{fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round}
 .lk{fill:var(--accent)}
+.rec{font-family:ui-monospace,Menlo,monospace;font-size:1.05rem;letter-spacing:.05em;word-break:break-all;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;user-select:all}
 @keyframes lockClose{0%,45%{transform:translateY(-14px) rotate(24deg)}78%{transform:translateY(3px) rotate(-2deg)}100%{transform:translateY(0) rotate(0)}}
 @keyframes lockGlow{0%,70%{filter:drop-shadow(0 0 0 transparent)}85%{filter:drop-shadow(0 0 16px var(--accent))}100%{filter:drop-shadow(0 0 0 transparent)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -198,6 +199,11 @@ a{color:var(--accent)}
   <div class="msg" id="msg" role="alert"></div>
   <div class="sec" id="acct"><h4>Account</h4>
     <p class="small" id="acctInfo" style="margin:0 0 8px"></p>
+    <p class="small" id="syncInfo" style="margin:0 0 8px"></p>
+    <button id="bkEnc" type="button" class="upd" hidden>Turn on end-to-end encryption</button>
+    <button id="bkUnl" type="button" class="upd" hidden>Unlock your backup</button>
+    <button id="bkStd" type="button" hidden style="width:100%;margin-bottom:10px"></button>
+    <button id="bkOff" type="button" hidden style="width:100%;margin-bottom:10px">Turn off backup</button>
     <button id="linkBtn" type="button" class="upd" hidden>Sign in with Google</button>
     <button id="outBtn" type="button">Sign out</button>
     <button id="delBtn" type="button" class="ba">Delete account</button>
@@ -205,7 +211,7 @@ a{color:var(--accent)}
     <p class="small" id="delNote">Deleting your account erases the data on this device and signs you out for good.</p>
   </div>
   <div class="sec" id="about"><h4>About</h4>
-    <p class="small" style="margin:0">Your data is stored on this device. Encrypted cloud backup arrives with sign-in.</p>
+    <p class="small" style="margin:0">Your attendance is stored on this device. If you sign in, you can also back it up from the Account section, either end-to-end encrypted or standard.</p>
     <p class="small"><a href="https://github.com/sreevachan/attendance-tracker/issues/new">Report a bug or suggest a feature</a></p>
   </div>
 </section>
@@ -222,6 +228,35 @@ a{color:var(--accent)}
     <h1>Your attendance, private.</h1>
     <p id="wText"></p>
     <button class="upd" id="wGo">Continue</button>
+  </div>
+</div>
+
+<div class="gate" id="choice" hidden style="z-index:65">
+  <div class="gcard" style="text-align:left">
+    <h1 style="font-size:1.5rem;text-align:center">Back up your attendance?</h1>
+    <p class="small" style="text-align:center;margin:0 0 14px">Choose how it is protected. You can change this later in Settings.</p>
+    <button class="upd" id="chEnc" style="text-align:left"><b>End-to-end encrypted (recommended)</b><br><span style="font-weight:400;font-size:.85rem">Only you can read it. If you lose both your passphrase and recovery code, nobody can recover it.</span></button>
+    <button id="chStd" style="width:100%;text-align:left;margin-bottom:10px"><b>Standard backup</b><br><span style="font-weight:400;font-size:.85rem">Signing in with Google brings it back, with no passphrase. The developer could technically read it.</span></button>
+    <button id="chOff" style="width:100%">Not now</button>
+  </div>
+</div>
+
+<div class="gate" id="enc" hidden style="z-index:65">
+  <div class="gcard">
+    <h1 id="eTitle" style="font-size:1.5rem"></h1>
+    <p class="small" id="eSub" style="margin:0 0 14px"></p>
+    <div id="eSet" hidden>
+      <input id="ePw1" type="password" placeholder="Passphrase (8+ characters)" autocomplete="new-password">
+      <input id="ePw2" type="password" placeholder="Repeat passphrase" autocomplete="new-password" style="margin-top:8px">
+    </div>
+    <div id="eRecBox" hidden>
+      <div class="rec" id="eCode"></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:10px;color:var(--ink)"><input id="eSaved" type="checkbox" style="width:auto"> I saved this code somewhere safe</label>
+    </div>
+    <div id="eUnl" hidden><input id="eIn" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+    <button class="upd" id="eGo" style="margin-top:14px"></button>
+    <button id="eAlt" style="width:100%"></button>
+    <div class="msg bad" id="eErr" role="alert"></div>
   </div>
 </div>
 
@@ -315,7 +350,16 @@ a{color:var(--accent)}
   var AUTH=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.auth;
   var VERSION="2.0.0",BUILD=2,VERSION_URL="https://raw.githubusercontent.com/sreevachan/attendance-tracker/main/version.json";
   st.settings.theme=st.settings.theme||"system";if(st.profile===undefined)st.profile=null;
-  function save(){if(!canSave)return;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
+  var lastPs="",cloudReady=false,saveTimer=null,DK=null,META=null,CLOUD=null,pending=null,KKEY="attendance-key";
+  function payload(){return {profile:st.profile,settings:st.settings,pw:st.pw,base:st.base,days:st.days,exam:st.exam}}
+  lastPs=JSON.stringify(payload());
+  // A real change stamps the time and, once the backup is ready, schedules an encrypted upload.
+  function save(){
+    if(!canSave)return;
+    var ps=JSON.stringify(payload());
+    if(ps!==lastPs){lastPs=ps;st.updatedAt=Date.now();if(cloudReady){clearTimeout(saveTimer);saveTimer=setTimeout(push,1500)}}
+    try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}
+  }
 
   var $=function(i){return document.getElementById(i)};
   function applyTheme(){var t=st.settings.theme,r=document.documentElement;if(t==="light"||t==="dark")r.setAttribute("data-theme",t);else r.removeAttribute("data-theme")}
@@ -537,7 +581,7 @@ a{color:var(--accent)}
   checkUpdate();
   // Google sign-in is required. The iPhone app does the sign-in itself; this page only shows the screens.
   var acct=null,eraseArmed=false,delArmed=false,guestArmed=false;
-  function authPost(a){try{AUTH.postMessage({action:a});return true}catch(e){return false}}
+  function authPost(a,doc){try{AUTH.postMessage(doc?{action:a,doc:doc}:{action:a});return true}catch(e){return false}}
   function showGate(on,err){
     $("gate").hidden=!on;$("gErr").textContent=err||"";
     $("gSign").hidden=false;$("gSign").disabled=false;$("gErase").hidden=true;$("gOut").hidden=true;
@@ -548,8 +592,15 @@ a{color:var(--accent)}
     var g=!acct&&!!st.guest;
     $("acctInfo").textContent=acct?"Signed in as "+(acct.email||acct.name||"your account"):(g?"You are using the app without an account. If you delete the app or lose this phone, your data can't be recovered.":"");
     $("linkBtn").hidden=!g;$("outBtn").hidden=!acct;$("delBtn").hidden=!acct;$("delNote").hidden=!acct;
+    var bk=st.backup;
+    $("syncInfo").textContent=acct?(bk==="std"?"Standard backup is on.":bk==="enc"?(cloudReady?"End-to-end encrypted backup is on.":"Your encrypted backup is locked."):"Backup is off."):"";
+    $("bkEnc").hidden=!(acct&&CRY&&bk!=="enc");
+    $("bkUnl").hidden=!(acct&&bk==="enc"&&!cloudReady);
+    $("bkStd").hidden=!(acct&&((bk==="enc"&&cloudReady)||bk!=="enc"&&bk!=="std"));
+    $("bkStd").textContent=bk==="enc"?"Switch to standard backup":"Turn on standard backup";
+    $("bkOff").hidden=!(acct&&(bk==="std"||bk==="enc"));
   }
-  function wipeLocal(){try{localStorage.removeItem(KEY);localStorage.removeItem(OLD);localStorage.removeItem(OLD_BAK)}catch(e){}}
+  function wipeLocal(){try{localStorage.removeItem(KEY);localStorage.removeItem(OLD);localStorage.removeItem(OLD_BAK);localStorage.removeItem(KKEY)}catch(e){}}
   window.onAuth=function(a){
     if(!a||!a.signedIn){acct=null;if(!st.guest)showGate(true);renderAcct();return}
     if(st.uid&&st.uid!==a.uid){
@@ -559,7 +610,7 @@ a{color:var(--accent)}
     // First sign-in on this device (including a guest signing in): the data already here becomes this account's.
     if(!st.uid)st.uid=a.uid;
     st.guest=false;save();
-    acct=a;showGate(false);renderAcct();draw();
+    acct=a;showGate(false);renderAcct();draw();startCloud();
   };
   window.onAuthError=function(m){
     if(acct||st.guest){var e=$("acctMsg");e.textContent=m;e.className="msg bad";delArmed=false;$("delBtn").textContent="Delete account"}
@@ -567,12 +618,12 @@ a{color:var(--accent)}
   };
   window.onDeleted=function(){wipeLocal();location.reload()};
   $("gSign").onclick=function(){$("gSign").disabled=true;$("gErr").textContent="";if(!authPost("signIn"))showGate(true,"Sign-in is not available here yet.")};
-  $("gOut").onclick=function(){authPost("signOut")};
+  $("gOut").onclick=function(){forgetKey();authPost("signOut")};
   $("gErase").onclick=function(){
     if(!eraseArmed){eraseArmed=true;$("gErase").textContent="Tap again to erase this device's data";setTimeout(function(){eraseArmed=false;$("gErase").textContent="Erase this device's data and continue"},4000);return}
     wipeLocal();location.reload();
   };
-  $("outBtn").onclick=function(){closeSettings();authPost("signOut")};
+  $("outBtn").onclick=function(){closeSettings();forgetKey();authPost("signOut")};
   $("delBtn").onclick=function(){
     if(!delArmed){delArmed=true;$("delBtn").textContent="Tap again to delete everything";setTimeout(function(){delArmed=false;$("delBtn").textContent="Delete account"},4000);return}
     delArmed=false;$("delBtn").textContent="Delete account";authPost("delete");
@@ -585,13 +636,167 @@ a{color:var(--accent)}
   if(AUTH&&!st.guest){showGate(true);$("gSign").hidden=true;$("gGuest").hidden=true;authPost("status")}
   else if(AUTH)renderAcct();
   // Welcome screen, shown once on first open. The encryption line appears only once encryption is really on.
-  var ENCRYPTION_ON=false,WKEY="attendance-welcomed";
+  var ENCRYPTION_ON=!!(window.crypto&&crypto.subtle&&AUTH),WKEY="attendance-welcomed";
   function showWelcome(){
-    $("wText").textContent=ENCRYPTION_ON?"End-to-end encrypted. Only you can read your attendance, not even the developer.":"Your attendance is stored privately on this device.";
+    $("wText").textContent=ENCRYPTION_ON?"You choose how your backup is protected. With end-to-end encryption, only you can read your attendance, not even the developer.":"Your attendance is stored privately on this device.";
     $("welcome").hidden=false;
   }
   $("wGo").onclick=function(){try{localStorage.setItem(WKEY,"1")}catch(e){}$("welcome").hidden=true};
   try{if(!localStorage.getItem(WKEY))showWelcome()}catch(e){showWelcome()}
+  // ---- End-to-end encryption: everything is encrypted here, on the device, before it leaves. ----
+  var te=new TextEncoder(),td=new TextDecoder(),ITERS=310000,REC_ITERS=100000,encMode="";
+  function b64(buf){var a=new Uint8Array(buf),t="";for(var i=0;i<a.length;i++)t+=String.fromCharCode(a[i]);return btoa(t)}
+  function unb64(t){var x=atob(t),a=new Uint8Array(x.length);for(var i=0;i<x.length;i++)a[i]=x.charCodeAt(i);return a}
+  function rnd(n){return crypto.getRandomValues(new Uint8Array(n))}
+  function kek(secret,salt,iters){
+    return crypto.subtle.importKey("raw",te.encode(secret),"PBKDF2",false,["deriveKey"]).then(function(k){
+      return crypto.subtle.deriveKey({name:"PBKDF2",salt:salt,iterations:iters,hash:"SHA-256"},k,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])});
+  }
+  function seal(key,bytes){
+    var iv=rnd(12);
+    return crypto.subtle.encrypt({name:"AES-GCM",iv:iv},key,bytes).then(function(ct){var o=new Uint8Array(12+ct.byteLength);o.set(iv);o.set(new Uint8Array(ct),12);return b64(o)});
+  }
+  function unseal(key,text){var a=unb64(text);return crypto.subtle.decrypt({name:"AES-GCM",iv:a.slice(0,12)},key,a.slice(12))}
+  function dkFrom(raw){return crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"])}
+  function newCode(){var a=rnd(16),h="";for(var i=0;i<16;i++)h+=("0"+a[i].toString(16)).slice(-2);return h.toUpperCase()}
+  // A random data key encrypts your data. It is stored twice, wrapped by your passphrase and by the recovery code.
+  function setupKeys(pass){
+    var salt=rnd(16),rsalt=rnd(16),out={code:newCode()};
+    return crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt","decrypt"]).then(function(k){
+      out.dk=k;return crypto.subtle.exportKey("raw",k);
+    }).then(function(raw){
+      out.raw=raw;
+      return Promise.all([kek(pass,salt,ITERS),kek(out.code,rsalt,REC_ITERS)]).then(function(ks){return Promise.all([seal(ks[0],raw),seal(ks[1],raw)])});
+    }).then(function(w){
+      out.meta={v:1,salt:b64(salt),iters:ITERS,wrapPass:w[0],recSalt:b64(rsalt),wrapRec:w[1]};return out;
+    });
+  }
+  function unlockWith(secret,isRec){
+    return kek(secret,unb64(isRec?META.recSalt:META.salt),isRec?REC_ITERS:META.iters)
+      .then(function(k){return unseal(k,isRec?META.wrapRec:META.wrapPass)})
+      .then(function(raw){return dkFrom(raw).then(function(k){DK=k;try{localStorage.setItem(KKEY,b64(raw))}catch(e){}})});
+  }
+  function forgetKey(){DK=null;META=null;cloudReady=false;try{localStorage.removeItem(KKEY)}catch(e){}}
+
+  function push(){
+    if(!cloudReady)return;
+    if(st.backup==="std"){authPost("cloudPut",{v:1,mode:"std",data:JSON.stringify(payload()),updatedAt:st.updatedAt||Date.now()});return}
+    if(!DK||!META)return;
+    seal(DK,te.encode(JSON.stringify(payload()))).then(function(blob){
+      authPost("cloudPut",{v:1,mode:"enc",salt:META.salt,iters:META.iters,wrapPass:META.wrapPass,recSalt:META.recSalt,wrapRec:META.wrapRec,blob:blob,updatedAt:st.updatedAt||Date.now()});
+    }).catch(function(){});
+  }
+  function applyRemote(r,ts){
+    if(!r||!r.pw||r.pw.length!==7||!r.base||!r.days||!r.settings||!r.settings.minPct)return;
+    ["profile","settings","pw","base","days","exam"].forEach(function(k){if(r[k]!==undefined)st[k]=r[k]});
+    st.settings.theme=st.settings.theme||"system";st.updatedAt=ts;lastPs=JSON.stringify(payload());
+    try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}
+    fillForm();applyTheme();setupMode(!st.profile);draw();
+  }
+  // Newest copy wins (the whole backup is compared by time).
+  function afterKey(doc){
+    return unseal(DK,doc.blob).then(function(buf){
+      var remote=JSON.parse(td.decode(buf));
+      $("enc").hidden=true;cloudReady=true;st.backup="enc";save();
+      if((doc.updatedAt||0)>(st.updatedAt||0))applyRemote(remote,doc.updatedAt);
+      else if((st.updatedAt||0)>(doc.updatedAt||0))push();
+      renderAcct();
+    });
+  }
+  function startCloud(){
+    cloudReady=false;
+    authPost("cloudGet");
+  }
+  window.onCloud=function(r){
+    if(!r)return;
+    if(r.op==="put"){if(!r.ok)$("syncInfo").textContent="Backup could not be saved. It will retry when you are online.";return}
+    if(r.op==="delete"){
+      if(r.ok){forgetKey();st.backup="off";save();renderAcct()}
+      else $("syncInfo").textContent="Could not delete the backup. Check your connection.";
+      return;
+    }
+    if(!r.ok){$("syncInfo").textContent="Could not reach your backup. Working offline.";return}
+    if(!r.exists||!r.doc){META=null;if(st.backup==="off"){renderAcct();return}showChoice();return}
+    if(r.doc.mode==="std"){afterStd(r.doc);return}
+    if(!CRY){$("syncInfo").textContent="Encrypted backups are not available on this device.";return}
+    st.backup="enc";save();
+    CLOUD=r.doc;META={salt:r.doc.salt,iters:r.doc.iters,wrapPass:r.doc.wrapPass,recSalt:r.doc.recSalt,wrapRec:r.doc.wrapRec};
+    var kb=null;try{kb=localStorage.getItem(KKEY)}catch(e){}
+    if(!kb){showEnc("unlock");return}
+    dkFrom(unb64(kb)).then(function(k){DK=k;return afterKey(CLOUD)}).catch(function(){DK=null;try{localStorage.removeItem(KKEY)}catch(e){}showEnc("unlock")});
+  };
+
+  function showEnc(m,err){
+    encMode=m;$("enc").hidden=false;$("eErr").textContent=err||"";
+    $("eSet").hidden=m!=="set";$("eRecBox").hidden=m!=="rec";$("eUnl").hidden=(m!=="unlock"&&m!=="unlockRec");
+    $("eAlt").hidden=(m==="rec");
+    var T={set:["Create your passphrase","This passphrase encrypts your backup on this phone. Nobody can reset it, not even the developer. If you lose it, your recovery code is the only way back in."],
+      rec:["Save your recovery code","Write it down or save it somewhere safe. It is the only other way to open your backup, and it can't be shown again."],
+      unlock:["Enter your passphrase","Your backup is encrypted. Enter your passphrase to unlock it on this device."],
+      unlockRec:["Use your recovery code","Enter the recovery code you saved when you set up your backup."]}[m];
+    $("eTitle").textContent=T[0];$("eSub").textContent=T[1];
+    $("eGo").textContent={set:"Continue",rec:"Finish",unlock:"Unlock",unlockRec:"Unlock"}[m];
+    $("eAlt").textContent=m==="set"?"Back":(m==="unlock"?"Use recovery code instead":"Use passphrase instead");
+    $("eIn").type=m==="unlockRec"?"text":"password";$("eIn").placeholder=m==="unlockRec"?"XXXX-XXXX-XXXX-XXXX-...":"Passphrase";$("eIn").value="";
+    if(m==="set"){$("ePw1").value="";$("ePw2").value=""}
+  }
+  function busy(b){$("eGo").disabled=b;$("eGo").style.opacity=b?.6:1}
+  $("eAlt").onclick=function(){
+    if(encMode==="set"){$("enc").hidden=true;if(!st.backup)showChoice();return}
+    showEnc(encMode==="unlock"?"unlockRec":"unlock");
+  };
+  $("eGo").onclick=function(){
+    $("eErr").textContent="";
+    if(encMode==="set"){
+      var a=$("ePw1").value,b=$("ePw2").value;
+      if(a.length<8){$("eErr").textContent="Use at least 8 characters.";return}
+      if(a!==b){$("eErr").textContent="The passphrases don't match.";return}
+      busy(true);
+      setupKeys(a).then(function(r){
+        pending=r;busy(false);$("ePw1").value="";$("ePw2").value="";
+        showEnc("rec");$("eCode").textContent=r.code.match(/.{4}/g).join("-");$("eSaved").checked=false;
+      }).catch(function(){busy(false);$("eErr").textContent="Could not create keys on this device."});
+    }else if(encMode==="rec"){
+      if(!$("eSaved").checked){$("eErr").textContent="Tick the box once you have saved the code.";return}
+      DK=pending.dk;META=pending.meta;
+      try{localStorage.setItem(KKEY,b64(pending.raw))}catch(e){}
+      pending=null;$("eCode").textContent="";$("enc").hidden=true;cloudReady=true;st.backup="enc";save();
+      if(!st.updatedAt)st.updatedAt=Date.now();
+      push();renderAcct();
+    }else{
+      var v=$("eIn").value.trim();if(!v)return;
+      var isRec=encMode==="unlockRec";
+      busy(true);
+      unlockWith(isRec?v.toUpperCase().replace(/[^0-9A-F]/g,""):v,isRec).then(function(){return afterKey(CLOUD)}).then(function(){busy(false)})
+        .catch(function(){busy(false);$("eErr").textContent=isRec?"That recovery code doesn't match.":"Wrong passphrase."});
+    }
+  };
+  // Backup choice: end-to-end encrypted, standard (readable by the developer), or none.
+  var CRY=!!(window.crypto&&crypto.subtle),stdArmed=false,offArmed=false;
+  function showChoice(){$("chEnc").hidden=!CRY;$("choice").hidden=false}
+  function afterStd(doc){
+    try{
+      var remote=JSON.parse(doc.data);cloudReady=true;st.backup="std";save();
+      if((doc.updatedAt||0)>(st.updatedAt||0))applyRemote(remote,doc.updatedAt);
+      else if((st.updatedAt||0)>(doc.updatedAt||0))push();
+      renderAcct();
+    }catch(e){$("syncInfo").textContent="Your backup could not be read."}
+  }
+  $("chEnc").onclick=function(){$("choice").hidden=true;showEnc("set")};
+  $("chStd").onclick=function(){$("choice").hidden=true;st.backup="std";cloudReady=true;save();push();renderAcct()};
+  $("chOff").onclick=function(){$("choice").hidden=true;st.backup="off";save();renderAcct()};
+  $("bkEnc").onclick=function(){showEnc("set")};
+  $("bkUnl").onclick=function(){showEnc("unlock")};
+  $("bkStd").onclick=function(){
+    var b=$("bkStd");
+    if(st.backup==="enc"&&!stdArmed){stdArmed=true;b.textContent="Tap again: your data will be stored unencrypted";setTimeout(function(){stdArmed=false;renderAcct()},4000);return}
+    stdArmed=false;forgetKey();st.backup="std";cloudReady=true;save();push();renderAcct();
+  };
+  $("bkOff").onclick=function(){
+    var b=$("bkOff");
+    if(!offArmed){offArmed=true;b.textContent="Tap again to delete your cloud backup";setTimeout(function(){offArmed=false;b.textContent="Turn off backup"},4000);return}
+    offArmed=false;b.textContent="Turn off backup";authPost("cloudDelete");
+  };
   $("gear").onclick=openSettings;$("setClose").onclick=closeSettings;
   applyTheme();fillForm();setupMode(!st.profile);
   draw();
