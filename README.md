@@ -2,7 +2,7 @@
 
 A website and apps to track college attendance: mark each day, see your percentage against your minimum, and plan how many classes you can still miss. Sign in with Google for an optional backup, either end-to-end encrypted or standard.
 
-> Built with the help of AI tools (including Claude) as a learning project.
+> Built with the help of AI tools as a learning project.
 
 ## Screenshots
 
