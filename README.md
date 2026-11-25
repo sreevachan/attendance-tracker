@@ -4,15 +4,6 @@ A website and apps to track college attendance: mark each day, see your percenta
 
 Built with the help of AI tools (including Claude) as a learning project.
 
-Screenshots
-
-<img width="483" height="307" alt="Screenshot 2026-11-25 at 2 09 07 PM" src="https://github.com/user-attachments/assets/fcc354c0-9e41-4723-8ec1-bec5e490aedb" />
-<img width="538" height="841" alt="Screenshot 2026-11-25 at 2 08 44 PM" src="https://github.com/user-attachments/assets/ee4f8e06-ddcd-4437-ac91-3f2c98df5bcf" />
-<img width="538" height="591" alt="Screenshot 2026-11-25 at 2 08 27 PM" src="https://github.com/user-attachments/assets/137fb16f-6434-4d18-826a-3b2286aecddb" />
-<img width="578" height="591" alt="Screenshot 2026-11-25 at 2 04 56 PM" src="https://github.com/user-attachments/assets/af1ff576-9b3f-4876-a0f1-6c1be84bfcac" />
-<img width="578" height="776" alt="Screenshot 2026-11-25 at 2 04 41 PM" src="https://github.com/user-attachments/assets/cbd05c10-b4ef-4d72-9137-388472875c9c" />
-<img width="1289" height="2509" alt="IMG_2809" src="https://github.com/user-attachments/assets/dcd1ef5f-ac86-458f-98fb-23944dd82582" />
-
 
 Features
 
@@ -91,3 +82,13 @@ Version history
 	•	v1.0: first version: calendar, planner and widget
 
 Made by Sreevachan.
+
+
+Screenshots
+
+<img width="483" height="307" alt="Screenshot 2026-11-25 at 2 09 07 PM" src="https://github.com/user-attachments/assets/fcc354c0-9e41-4723-8ec1-bec5e490aedb" />
+<img width="538" height="841" alt="Screenshot 2026-11-25 at 2 08 44 PM" src="https://github.com/user-attachments/assets/ee4f8e06-ddcd-4437-ac91-3f2c98df5bcf" />
+<img width="538" height="591" alt="Screenshot 2026-11-25 at 2 08 27 PM" src="https://github.com/user-attachments/assets/137fb16f-6434-4d18-826a-3b2286aecddb" />
+<img width="578" height="591" alt="Screenshot 2026-11-25 at 2 04 56 PM" src="https://github.com/user-attachments/assets/af1ff576-9b3f-4876-a0f1-6c1be84bfcac" />
+<img width="578" height="776" alt="Screenshot 2026-11-25 at 2 04 41 PM" src="https://github.com/user-attachments/assets/cbd05c10-b4ef-4d72-9137-388472875c9c" />
+<img width="1289" height="2509" alt="IMG_2809" src="https://github.com/user-attachments/assets/dcd1ef5f-ac86-458f-98fb-23944dd82582" />
