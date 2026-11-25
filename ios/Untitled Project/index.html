@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Attendance Calendar</title>
+<meta name="theme-color" content="#2b59c3">
+<meta name="description" content="Track your college attendance, see how many classes you can miss, and keep an optional encrypted backup.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{--bg:#eef2f7;--card:#fff;--ink:#14213d;--mute:#5b6577;--line:#d5dce8;--good:#17803d;--goodbg:#cfeedb;--bad:#c62828;--badbg:#f8d4d4;--warn:#b45309;--warnbg:#fbe5c0;--hol:#6b7280;--holbg:#e3e6ec;--accent:#2b59c3;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -291,6 +295,58 @@ a{color:var(--accent)}
   </div>
 </div>
 
+<script src="firebase-config.js"></script>
+<script>
+// Website only. In the iPhone app the native side handles sign-in and backup. In a browser, this
+// stand-in does the same job with Firebase and answers through the same callbacks the page already uses.
+(function(){
+  var cfg=window.FIREBASE_CONFIG;
+  var native=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.auth;
+  if(native||!/^https?:$/.test(location.protocol)||!cfg||String(cfg.apiKey).indexOf("PASTE")===0)return;
+  var F=null,V="https://www.gstatic.com/firebasejs/10.12.2/";
+  function call(fn,arg){if(window[fn])window[fn](arg)}
+  function who(u){return u?{signedIn:true,uid:u.uid,name:u.displayName||"",email:u.email||""}:{signedIn:false}}
+  var ready=(async function(){
+    var a=await import(V+"firebase-app.js"),au=await import(V+"firebase-auth.js"),fs=await import(V+"firebase-firestore.js");
+    var app=a.initializeApp(cfg);
+    F={au:au,fs:fs,auth:au.getAuth(app),db:fs.getFirestore(app)};
+  })();
+  ready.catch(function(){call("onAuthError","Could not load sign-in. Check your connection and reload.")});
+  function ref(){return F.fs.doc(F.db,"users",F.auth.currentUser.uid)}
+  function provider(){return new F.au.GoogleAuthProvider()}
+  window.WEBAUTH={postMessage:function(m){
+    var act=m.action;
+    if(act==="status"){
+      ready.then(function(){var un=F.au.onAuthStateChanged(F.auth,function(u){if(un)un();call("onAuth",who(u))})});
+      return;
+    }
+    // Pop-ups only open when started straight from a tap, so these calls must not wait.
+    if(!F){call("onAuthError","Still loading. Tap again in a moment.");return}
+    if(act==="signIn"){
+      F.au.signInWithPopup(F.auth,provider()).then(function(r){call("onAuth",who(r.user))})
+        .catch(function(e){call("onAuthError",e&&e.code==="auth/popup-closed-by-user"?"":"Sign-in failed. Allow pop-ups for this site and try again.")});
+      return;
+    }
+    if(act==="signOut"){F.au.signOut(F.auth).then(function(){call("onAuth",{signedIn:false})});return}
+    var u=F.auth.currentUser;if(!u)return;
+    if(act==="delete"){
+      F.au.reauthenticateWithPopup(u,provider())
+        .then(function(){return F.fs.deleteDoc(ref())})
+        .then(function(){return F.au.deleteUser(u)})
+        .then(function(){call("onDeleted")})
+        .catch(function(){call("onAuthError","Could not delete the account. Try again.")});
+      return;
+    }
+    if(act==="cloudGet"){
+      F.fs.getDoc(ref()).then(function(s){call("onCloud",{op:"get",ok:true,exists:s.exists(),doc:s.exists()?s.data():undefined})})
+        .catch(function(){call("onCloud",{op:"get",ok:false})});
+      return;
+    }
+    if(act==="cloudPut"){F.fs.setDoc(ref(),m.doc).then(function(){call("onCloud",{op:"put",ok:true})}).catch(function(){call("onCloud",{op:"put",ok:false})});return}
+    if(act==="cloudDelete"){F.fs.deleteDoc(ref()).then(function(){call("onCloud",{op:"delete",ok:true})}).catch(function(){call("onCloud",{op:"delete",ok:false})})}
+  }};
+})();
+</script>
 <script>
 (function(){
   // Storage: v3 is the current format. v2 is the old format, kept untouched as a backup.
@@ -347,7 +403,7 @@ a{color:var(--accent)}
   }
 
   var st=load();
-  var AUTH=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.auth;
+  var AUTH=(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.auth)||window.WEBAUTH;
   var VERSION="2.0.0",BUILD=2,VERSION_URL="https://raw.githubusercontent.com/sreevachan/attendance-tracker/main/version.json";
   st.settings.theme=st.settings.theme||"system";if(st.profile===undefined)st.profile=null;
   var lastPs="",cloudReady=false,saveTimer=null,DK=null,META=null,CLOUD=null,pending=null,KKEY="attendance-key";
@@ -802,5 +858,6 @@ a{color:var(--accent)}
   draw();
 })();
 </script>
+<script>if("serviceWorker"in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(function(){});</script>
 </body>
 </html>
