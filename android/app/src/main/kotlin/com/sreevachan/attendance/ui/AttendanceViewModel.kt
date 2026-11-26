@@ -72,6 +72,8 @@ data class AttendanceUiState(
     val encBusy: Boolean = false,
     val recoveryCodeDisplay: String = "",
     val cloudReady: Boolean = false,
+    val lastBackupTimeText: String = "",
+    val backupInProgress: Boolean = false,
     val currentMonth: YearMonth = YearMonth.now(),
     val selectedDayKey: String? = null,
     val updateInfo: UpdateInfo? = null,
@@ -702,26 +704,57 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
         val ts = if (st.updatedAt > 0L) st.updatedAt else System.currentTimeMillis()
         viewModelScope.launch {
             val token = ensureToken() ?: return@launch
+            _ui.update { it.copy(backupInProgress = true, syncStatus = "Backing up to Google Drive...") }
             val ok = when (st.backup) {
                 "std" -> repo.cloudPutStandard(token, st.toPayload(), ts)
                 "enc" -> {
-                    val dk = dataKey ?: return@launch
-                    val meta = cryptoMeta ?: return@launch
+                    val dk = dataKey ?: run {
+                        _ui.update { it.copy(backupInProgress = false) }
+                        return@launch
+                    }
+                    val meta = cryptoMeta ?: run {
+                        _ui.update { it.copy(backupInProgress = false) }
+                        return@launch
+                    }
                     val blob = withContext(Dispatchers.Default) {
                         val plain = repo.json.encodeToString(st.toPayload()).encodeToByteArray()
                         CryptoHelper.seal(dk, plain)
                     }
                     repo.cloudPutEncrypted(token, meta, blob, ts)
                 }
-                else -> return@launch
+                else -> {
+                    _ui.update { it.copy(backupInProgress = false) }
+                    return@launch
+                }
             }
             if (!ok) {
                 repo.invalidateDriveToken()
                 driveAccessToken = null
-                _ui.update { it.copy(syncStatus = "Backup could not be saved to Google Drive. It will retry when you are online.") }
+                _ui.update {
+                    it.copy(
+                        backupInProgress = false,
+                        syncStatus = "Backup could not be saved to Google Drive. It will retry when you are online.",
+                    )
+                }
             } else {
-                _ui.update { it.copy(syncStatus = syncSummaryText(st.backup, cloudReady = true)) }
+                val timeStr = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("h:mm a"))
+                _ui.update {
+                    it.copy(
+                        backupInProgress = false,
+                        lastBackupTimeText = timeStr,
+                        syncStatus = "${syncSummaryText(st.backup, cloudReady = true)} Last backed up at $timeStr.",
+                    )
+                }
             }
+        }
+    }
+
+    fun backupNow() {
+        if (!_ui.value.cloudReady) {
+            authorizeAndStartDriveSync()
+        } else {
+            saveJob?.cancel()
+            pushNow()
         }
     }
 

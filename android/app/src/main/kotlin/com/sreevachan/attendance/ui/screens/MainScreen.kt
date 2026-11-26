@@ -365,6 +365,7 @@ fun MainScreen(
 @Composable
 private fun SubjectsCard(stats: List<SubjectStat>) {
     val c = LocalAttendanceColors.current
+    var expanded by remember { mutableStateOf(false) }
     Surface(
         color = c.card,
         shape = RoundedCornerShape(14.dp),
@@ -372,55 +373,66 @@ private fun SubjectsCard(stats: List<SubjectStat>) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Subjects", color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            stats.forEach { st ->
-                val color = if (st.conducted == 0) c.mute else if (st.ok) c.good else c.bad
-                val hint = when {
-                    st.conducted == 0 -> "No classes yet"
-                    st.ok -> "Can miss ${st.canMiss}"
-                    st.needToAttend < 0 -> "Needs 100%"
-                    else -> "Attend next ${st.needToAttend}"
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(c.bg, RoundedCornerShape(10.dp))
-                        .padding(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(st.subject.name, color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = if (st.conducted > 0) AttendanceCalculator.formatPct(st.pct) else "–",
-                            color = color,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                        )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Subjects (${stats.size})", color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(if (expanded) "\u25BE" else "\u25B8", color = c.mute, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+            if (expanded) {
+                stats.forEach { st ->
+                    val color = if (st.conducted == 0) c.mute else if (st.ok) c.good else c.bad
+                    val hint = when {
+                        st.conducted == 0 -> "No classes yet"
+                        st.ok -> "Can miss ${st.canMiss}"
+                        st.needToAttend < 0 -> "Needs 100%"
+                        else -> "Attend next ${st.needToAttend}"
                     }
-                    Spacer(Modifier.height(6.dp))
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(c.line),
+                            .background(c.bg, RoundedCornerShape(10.dp))
+                            .padding(12.dp),
                     ) {
-                        val frac = if (st.conducted > 0) (st.pct / 100.0).toFloat().coerceIn(0f, 1f) else 0f
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(st.subject.name, color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = if (st.conducted > 0) AttendanceCalculator.formatPct(st.pct) else "–",
+                                color = color,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(frac)
+                                .fillMaxWidth()
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp))
-                                .background(color),
-                        )
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("${st.attended} / ${st.conducted} classes", color = c.mute, fontSize = 12.sp)
-                        Text("$hint (${st.minPct}% min)", color = c.mute, fontSize = 12.sp)
+                                .background(c.line),
+                        ) {
+                            val frac = if (st.conducted > 0) (st.pct / 100.0).toFloat().coerceIn(0f, 1f) else 0f
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(frac)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(color),
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${st.attended} / ${st.conducted} classes", color = c.mute, fontSize = 12.sp)
+                            Text("$hint (${st.minPct}% min)", color = c.mute, fontSize = 12.sp)
+                        }
                     }
                 }
             }
