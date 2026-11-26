@@ -4,12 +4,6 @@ A native Android app, iOS app, and website to track college attendance: mark eac
 
 > Built with the help of AI tools (Claude & Gemini) as a learning project.
 
-## Screenshots
-
-<img width="1290" height="2448" alt="IMG_2613" src="https://github.com/user-attachments/assets/9f1f1434-72c1-4b2d-931a-1f2ea794f822" />
-<img width="1290" height="1821" alt="IMG_2614" src="https://github.com/user-attachments/assets/5746c75c-ea9b-42d9-9041-ac68c49eee5c" />
-<img width="555" height="550" alt="IMG_2617" src="https://github.com/user-attachments/assets/bf6b9965-1def-43a4-991e-0039e6d1a185" />
-
 ## Features
 - **Subject-wise & overall tracking:** Add your subjects (e.g. English, Maths, CRT), build your Mon–Sat timetable, and view both per-subject percentages and total attendance.
 - **Monthly calendar & per-class marking:** Mark an entire day Present, Absent, or Holiday in one tap, or mark individual periods (`P` / `A` / `Off`) and add extra classes.
@@ -66,5 +60,8 @@ A native Android app, iOS app, and website to track college attendance: mark eac
 - **v2.0:** Google sign-in, optional encrypted or standard backup, settings, welcome screen, update notice, app icon, website
 - **v1.1:** Widget fix
 - **v1.0:** First version: calendar, planner, and widget
+
+## Screenshots
+
 
 Made by Sreevachan.
