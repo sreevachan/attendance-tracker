@@ -61,7 +61,14 @@ A native Android app, iOS app, and website to track college attendance: mark eac
 - **v1.1:** Widget fix
 - **v1.0:** First version: calendar, planner, and widget
 
+Made by Sreevachan.
+
 ## Screenshots
 
+<img width="1290" height="1624" alt="IMG_2829" src="https://github.com/user-attachments/assets/35dfd424-dbf1-4287-bdff-bf39f1979c8d" />
+<img width="1290" height="907" alt="IMG_2831" src="https://github.com/user-attachments/assets/267315aa-b29b-4c02-a94c-288b6b63d481" />
+<img width="1290" height="1950" alt="IMG_2832" src="https://github.com/user-attachments/assets/c00a4f65-5147-43d6-9528-0568cbff1c8d" />
+<img width="1290" height="2218" alt="IMG_2833" src="https://github.com/user-attachments/assets/f06e7777-3d97-483e-86dd-221d11eb1bdb" />
+<img width="1290" height="2374" alt="IMG_2834" src="https://github.com/user-attachments/assets/ea9d30cc-56b5-4b26-8db8-c9cd2eb110a3" />
+<img width="1290" height="2032" alt="IMG_2835" src="https://github.com/user-attachments/assets/b0480c53-876b-46e9-8eeb-f3c9ed6bd0a3" />
 
-Made by Sreevachan.
