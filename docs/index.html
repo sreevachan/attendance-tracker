@@ -299,17 +299,31 @@ a{color:var(--accent)}
 <script>
 // Website only. In the iPhone app the native side handles sign-in and backup. In a browser, this
 // stand-in does the same job with Firebase and answers through the same callbacks the page already uses.
+// Sign-in is a full-page redirect (no pop-ups). That works in every browser only when the page is served
+// from the same domain as the Firebase auth domain, which is what Firebase Hosting does.
 (function(){
   var cfg=window.FIREBASE_CONFIG;
   var native=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.auth;
   if(native||!/^https?:$/.test(location.protocol)||!cfg||String(cfg.apiKey).indexOf("PASTE")===0)return;
-  var F=null,V="https://www.gstatic.com/firebasejs/10.12.2/";
+  // The old GitHub Pages address cannot sign in, so send visitors to the real site.
+  if(/github\.io$/.test(location.hostname)&&cfg.authDomain&&location.hostname!==cfg.authDomain){location.replace("https://"+cfg.authDomain+"/");return}
+  var F=null,V="https://www.gstatic.com/firebasejs/10.12.2/",DELKEY="attendance-pending-delete";
   function call(fn,arg){if(window[fn])window[fn](arg)}
   function who(u){return u?{signedIn:true,uid:u.uid,name:u.displayName||"",email:u.email||""}:{signedIn:false}}
+  function msg(e){
+    var c=(e&&e.code)||"";
+    if(c==="auth/unauthorized-domain")return "This website address is not authorized for sign-in yet.";
+    if(c==="auth/network-request-failed")return "No connection. Check your internet and try again.";
+    if(c==="auth/web-storage-unsupported"||c==="auth/operation-not-supported-in-this-environment")return "This browser blocks the storage that sign-in needs. Try another browser.";
+    return "Sign-in failed"+(c?" ("+c+")":"")+". Try again.";
+  }
+  function flag(set){try{if(set)sessionStorage.setItem(DELKEY,"1");else sessionStorage.removeItem(DELKEY)}catch(e){}}
   var ready=(async function(){
     var a=await import(V+"firebase-app.js"),au=await import(V+"firebase-auth.js"),fs=await import(V+"firebase-firestore.js");
     var app=a.initializeApp(cfg);
     F={au:au,fs:fs,auth:au.getAuth(app),db:fs.getFirestore(app)};
+    // Finishes a redirect sign-in. This must run once, when the page loads after coming back from Google.
+    F.back=au.getRedirectResult(F.auth).catch(function(e){return {error:e}});
   })();
   ready.catch(function(){call("onAuthError","Could not load sign-in. Check your connection and reload.")});
   function ref(){return F.fs.doc(F.db,"users",F.auth.currentUser.uid)}
@@ -317,24 +331,30 @@ a{color:var(--accent)}
   window.WEBAUTH={postMessage:function(m){
     var act=m.action;
     if(act==="status"){
-      ready.then(function(){var un=F.au.onAuthStateChanged(F.auth,function(u){if(un)un();call("onAuth",who(u))})});
+      ready.then(async function(){
+        var res=await F.back,del=false;
+        try{del=sessionStorage.getItem(DELKEY)==="1"}catch(e){}
+        if(del){
+          flag(false);
+          // Back from the fresh sign-in that account deletion needs: finish deleting.
+          if(res&&res.user){
+            try{await F.fs.deleteDoc(F.fs.doc(F.db,"users",res.user.uid));await F.au.deleteUser(res.user);call("onDeleted");return}
+            catch(e){call("onAuthError","Could not delete the account. Try again.")}
+          }
+        }
+        var u=await new Promise(function(r){var un=F.au.onAuthStateChanged(F.auth,function(x){un();r(x)})});
+        call("onAuth",who(u));
+        if(res&&res.error)call("onAuthError",msg(res.error));
+      });
       return;
     }
-    // Pop-ups only open when started straight from a tap, so these calls must not wait.
     if(!F){call("onAuthError","Still loading. Tap again in a moment.");return}
-    if(act==="signIn"){
-      F.au.signInWithPopup(F.auth,provider()).then(function(r){call("onAuth",who(r.user))})
-        .catch(function(e){call("onAuthError",e&&e.code==="auth/popup-closed-by-user"?"":"Sign-in failed. Allow pop-ups for this site and try again.")});
-      return;
-    }
+    if(act==="signIn"){F.au.signInWithRedirect(F.auth,provider()).catch(function(e){call("onAuthError",msg(e))});return}
     if(act==="signOut"){F.au.signOut(F.auth).then(function(){call("onAuth",{signedIn:false})});return}
     var u=F.auth.currentUser;if(!u)return;
     if(act==="delete"){
-      F.au.reauthenticateWithPopup(u,provider())
-        .then(function(){return F.fs.deleteDoc(ref())})
-        .then(function(){return F.au.deleteUser(u)})
-        .then(function(){call("onDeleted")})
-        .catch(function(){call("onAuthError","Could not delete the account. Try again.")});
+      flag(true);
+      F.au.reauthenticateWithRedirect(u,provider()).catch(function(){flag(false);call("onAuthError","Could not confirm your identity. Try again.")});
       return;
     }
     if(act==="cloudGet"){
