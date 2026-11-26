@@ -1,8 +1,8 @@
 # Attendance Tracker
 
-A website and apps to track college attendance: mark each day, see your percentage against your minimum, and plan how many classes you can still miss. Sign in with Google for an optional backup, either end-to-end encrypted or standard.
+A native Android app, iOS app, and website to track college attendance: mark each day or individual class, track subject-wise and overall percentages, protect past records when your timetable changes, and optionally back up privately to your own Google Drive.
 
-> Built with the help of AI tools (including Claude) as a learning project.
+> Built with the help of AI tools (Claude & Gemini) as a learning project.
 
 ## Screenshots
 
@@ -11,74 +11,60 @@ A website and apps to track college attendance: mark each day, see your percenta
 <img width="555" height="550" alt="IMG_2617" src="https://github.com/user-attachments/assets/bf6b9965-1def-43a4-991e-0039e6d1a185" />
 
 ## Features
-- Monthly calendar: mark days Present, Absent, Partly present or Holiday
-- Overall and monthly percentage against your own minimum (default 75%)
-- "Plan ahead" calculator: how many classes you can still miss
-- List of unmarked days, and a celebration when you reach your minimum
-- Home-screen widget showing your percentage (native iPhone app only)
-- Light, dark or system theme
-- Use it without an account, or sign in with Google
-- Optional backup you choose when you sign in:
-  - **End-to-end encrypted:** protected by your passphrase and a recovery code. Only you can read it.
-  - **Standard:** restored by signing in with Google alone. The developer could technically read it.
-  - **None:** your data stays on the device.
+- **Subject-wise & overall tracking:** Add your subjects (e.g. English, Maths, CRT), build your Mon–Sat timetable, and view both per-subject percentages and total attendance.
+- **Monthly calendar & per-class marking:** Mark an entire day Present, Absent, or Holiday in one tap, or mark individual periods (`P` / `A` / `Off`) and add extra classes.
+- **Timetable history protection:** Changing your timetable mid-semester (e.g., 6 classes/day to 7 classes/day) applies from the date you choose—past marked and unmarked days stay untouched.
+- **Custom start date & manual entry:** Start from `0 / 0` on your college start date, or enter manual / mid-semester numbers per subject (or work out conducted classes from your percentage).
+- **Year, Semester, Mid & semester reset:** Track your current Year, Semester, and Mid, and start a new semester at `0` while archiving past semesters in history.
+- **Plan ahead calculator:** See how many classes remain until your exam/target date and how many you can still miss while staying above your minimum (default `75%`).
+- **Home-screen widgets:** Native home-screen attendance widget on Android (Jetpack Glance) and iPhone.
+- **In-app APK updates:** Android APK users get a banner when a new release is out and can download & install it directly inside the app.
+- **Light, dark, or system theme.**
+- **Private Google Drive backup (optional):** Use offline without an account, or sign in with Google to back up into **your own Google Drive** (`appDataFolder`):
+  - **End-to-end encrypted (recommended):** Encrypted on-device with AES-256-GCM before upload, protected by your passphrase and recovery code.
+  - **Standard Drive backup:** Restores automatically when you sign in with Google, without a passphrase.
+  - **None:** Everything stays only on your device.
 
 ## Privacy and security
-- Without an account, everything stays on your device. If you delete the app, it is gone.
-- Encrypted backups use AES-256-GCM, with the key wrapped by your passphrase and by a recovery code. If you lose both, nobody can recover the data.
-- Firestore rules let each person read and write only their own document, with limited fields. See the rules below.
-- No analytics or trackers. Account deletion also deletes the cloud backup.
-- Firebase config files for the iPhone app (`GoogleService-Info.plist`) are not in this repository.
+- **No developer server or user list:** On Android and the website, backups are saved directly into **your own hidden Google Drive app folder** (`drive.appdata`). The developer cannot see a list of users or access your data.
+- **Zero-knowledge encryption:** Encrypted backups use `AES-256-GCM` with keys wrapped via `PBKDF2-HMAC-SHA256` (310,000 iterations for passphrase, 100,000 for recovery code). If you lose both, nobody can recover the encrypted backup.
+- **Offline mode:** Without an account, everything stays locally on your device.
+- **No analytics or trackers:** Deleting your backup removes `attendance-backup.json` from your Google Drive app folder and wipes local data on the device.
+- Signing keystores and platform config secrets (`GoogleService-Info.plist`, `google-services.json`, `*.jks`, `*.keystore`) are excluded from this repository.
 
-## Use it
-- **iPhone:** use the website below. In Safari, tap Share, then **Add to Home Screen** to get an icon. The native iPhone app is not available to the public. It is installed only on the developer's own phone and on phones of people he personally gives access to from his Mac.
-- **Android:** download [`app-release.apk`](https://github.com/sreevachan/attendance-tracker/releases/latest/download/app-release.apk) from the [Releases](https://github.com/sreevachan/attendance-tracker/releases/latest) page (includes a home-screen widget and in-app updates). You can also install the website from Chrome with **Install app**.
-- **Website:** https://sreevachan.github.io/attendance-tracker/ (works on any phone or computer; no widget)
+## Download & Use It
+- **Android (Native App — Recommended):**
+  1. Download [`app-release.apk`](https://github.com/sreevachan/attendance-tracker/releases/latest/download/app-release.apk) from the [Releases](https://github.com/sreevachan/attendance-tracker/releases/latest) page.
+  2. Tap the downloaded `.apk` file on your Android phone and tap **Install** (allow **Install unknown apps** if Android asks).
+  3. Future updates can be installed directly from the **Update available** banner inside the app.
+- **Website (All Devices):**
+  - Open https://sreevachan.github.io/attendance-tracker/ (or https://attendance-app-4d857.firebaseapp.com/).
+  - On **iPhone**, tap Share → **Add to Home Screen** in Safari. On **Android/Desktop Chrome**, tap **Install app**.
+- **iPhone (Native App):** Installed privately from Xcode by the developer (`ios/`).
 
 ## Project structure
-- `docs/`: the website, published with GitHub Pages
-- `ios/`: the Xcode project for the native iPhone app (private distribution)
-- `version.json`: the update notice that apps check
+- `android/`: Native Kotlin + Jetpack Compose Android app & Glance home-screen widget
+- `docs/`: Website (published via GitHub Pages & Firebase Hosting)
+- `ios/`: Xcode project for the native iPhone app (private distribution)
+- `version.json`: Release metadata checked by the apps for updates
 
-## Firestore rules
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{uid} {
-      allow read, delete: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.v == 1
-        && request.resource.data.updatedAt is number
-        && (
-          (request.resource.data.keys().hasOnly(['v','mode','salt','iters','wrapPass','recSalt','wrapRec','blob','updatedAt'])
-            && request.resource.data.mode == 'enc'
-            && request.resource.data.blob is string
-            && request.resource.data.blob.size() < 900000)
-          ||
-          (request.resource.data.keys().hasOnly(['v','mode','data','updatedAt'])
-            && request.resource.data.mode == 'std'
-            && request.resource.data.data is string
-            && request.resource.data.data.size() < 900000)
-        );
-    }
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}
-```
+## Building the Android APK from source
+1. Install JDK 17 and the Android SDK (API 36).
+2. Run:
+   ```zsh
+   cd android
+   ./gradlew testDebugUnitTest assembleRelease
+   ```
+3. The APK is generated at `android/app/build/outputs/apk/release/app-release.apk`.
 
 ## Roadmap
-- Android app (APK) with a home-screen widget
-- Change passphrase, and Face ID unlock
-- Offline use on the website
-- College-specific calculation rules and subject-wise attendance
+- Change passphrase, and biometric / Face ID unlock
 - Photo import of attendance sheets
 
 ## Version history
+- **v2.1.0:** Native Android APK & Glance widget, Google Drive `appDataFolder` backup (zero user list on developer servers), subject-wise timetable & attendance, timetable history (`effectiveFrom`), custom college start date, manual entry, Year/Sem/Mid & semester reset, direct in-app APK updater
 - **v2.0:** Google sign-in, optional encrypted or standard backup, settings, welcome screen, update notice, app icon, website
-- **v1.1:** widget fix
-- **v1.0:** first version: calendar, planner and widget
+- **v1.1:** Widget fix
+- **v1.0:** First version: calendar, planner, and widget
 
 Made by Sreevachan.
