@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="light dark">
 <title>Attendance Calendar</title>
 <meta name="theme-color" content="#2b59c3">
-<meta name="description" content="Track your college attendance, see how many classes you can miss, and keep an optional encrypted backup.">
+<meta name="description" content="Track your college attendance, subject percentages, timetable history, and keep an optional encrypted backup in your own Google Drive.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -18,22 +18,22 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 [hidden]{display:none!important}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
-main{max-width:480px;margin:0 auto;padding:16px 14px 40px}
+main{max-width:500px;margin:0 auto;padding:16px 14px 40px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
-.big{font-size:3.6rem;font-weight:800;line-height:1;letter-spacing:-.03em}
+.big{font-size:3.4rem;font-weight:800;line-height:1;letter-spacing:-.03em}
 .good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
 .top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
 .lbl{font-size:.8rem;color:var(--mute)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .stat{background:var(--bg);border-radius:10px;padding:10px}
-.stat b{display:block;font-size:1.25rem;font-weight:800}
+.stat b{display:block;font-size:1.2rem;font-weight:800}
 .bar{position:relative;height:10px;border-radius:5px;background:var(--line);margin:16px 0 4px}
 .fill{height:100%;border-radius:5px;background:var(--accent)}
 .mark{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
 .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .nav h2{margin:0;font-size:1.1rem}
 button{font:inherit;font-weight:600;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
-button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .dow{text-align:center;font-size:.75rem;color:var(--mute);padding-bottom:2px}
 .day{aspect-ratio:1/1;padding:0;border-radius:10px;font-weight:600;font-size:.95rem;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center}
@@ -51,34 +51,49 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .legend i.um{background:transparent;border:1px dashed var(--warn)}
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:20}
 .sheet.on{display:flex}
-.panel{background:var(--card);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.panel{background:var(--card);width:100%;max-width:500px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
 .panel h3{margin:0 0 12px;font-size:1.05rem}
 .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btns button{padding:14px}
+.btns button{padding:12px}
 .bp{background:var(--goodbg);color:var(--good);border-color:var(--good)}
 .ba{background:var(--badbg);color:var(--bad);border-color:var(--bad)}
 .bh{background:var(--holbg);color:var(--hol);border-color:var(--hol)}
 .part{display:flex;gap:10px;margin-top:10px;align-items:center}
-input{font:inherit;font-size:1rem;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+input,select{font:inherit;font-size:1rem;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
 .plan{font-size:.95rem}
 h4{margin:0 0 8px;font-size:1rem}
-.row{display:flex;gap:10px}.row>div{flex:1}
+.row{display:flex;gap:10px;align-items:flex-end}.row>div{flex:1}
 label{display:block;font-size:.8rem;color:var(--mute);margin-bottom:4px}
 .small{font-size:.78rem;color:var(--mute);margin-top:8px}
 .notice{background:var(--warnbg);color:var(--warn);border:1px solid var(--warn);border-radius:10px;padding:10px;margin-bottom:14px;font-weight:600}
 .msg{font-size:.85rem;margin-top:8px;min-height:1.2em}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-.chip{padding:6px 10px;font-size:.8rem}
+.chip{padding:6px 10px;font-size:.82rem}
+.chip.on{background:rgba(43,89,195,.14);border-color:var(--accent);color:var(--accent)}
+.subcard{background:var(--bg);border-radius:10px;padding:12px;margin-top:8px}
+.subbar{height:6px;border-radius:3px;background:var(--line);margin:6px 0;overflow:hidden}
+.subfill{height:100%;border-radius:3px}
+.slotrow{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:10px;padding:8px 10px;margin-top:6px;gap:8px}
+.slotbtns{display:flex;gap:5px}
+.slotbtns button{padding:5px 10px;font-size:.78rem;border-radius:7px}
+.slotbtns button.selP{background:var(--goodbg);color:var(--good);border-color:var(--good)}
+.slotbtns button.selA{background:var(--badbg);color:var(--bad);border-color:var(--bad)}
+.slotbtns button.selH{background:var(--holbg);color:var(--hol);border-color:var(--hol)}
+.pills{display:flex;gap:8px;margin:8px 0}
+.pills button{flex:1;padding:10px 8px;font-size:.85rem}
+.pills button.on{border:2px solid var(--accent);color:var(--accent);background:rgba(43,89,195,.12)}
+.wktabs{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:8px 0}
+.wktabs button{padding:7px 2px;font-size:.78rem;text-align:center}
+.wktabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
 #setCard{display:none}
 #setCard.page{display:block;position:fixed;inset:0;z-index:30;margin:0;border-radius:0;overflow:auto;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(28px + env(safe-area-inset-bottom,0px))}
-#setCard .row{flex-direction:column;gap:10px}
-#setCard .row>div{flex:none}
+.setin{max-width:500px;margin:0 auto}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.topbar h1{margin:0;font-size:1.3rem}
-#gear{font-size:1.5rem;line-height:1;padding:6px 12px}
-#setCard #pw{flex-direction:column;gap:8px}
-#setCard #pw>div{display:flex;flex-direction:row-reverse;align-items:center;justify-content:space-between;gap:10px;flex:none}
-#pw input{width:90px;padding:10px;text-align:center}
+.topbar h1{margin:0;font-size:1.35rem}
+#gear{font-size:1.4rem;line-height:1;padding:6px 12px}
+#setCard #pw{display:flex;flex-direction:column;gap:8px}
+#setCard #pw>div{display:flex;flex-direction:row-reverse;align-items:center;justify-content:space-between;gap:10px}
+#pw input{width:90px;padding:8px;text-align:center}
 #pw .lbl{font-size:.95rem;color:var(--ink);margin:0}
 .upd{display:block;width:100%;margin-bottom:14px;background:var(--accent);color:#fff;border-color:var(--accent)}
 .gate{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
@@ -106,17 +121,18 @@ input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--a
 .spark{position:absolute;left:32%;top:38%;width:8px;height:8px;border-radius:50%;opacity:0;animation:spark .9s ease-out forwards}
 @keyframes spark{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.4)}}
 @media (prefers-reduced-motion:reduce){.big.pop{animation:none}.spark{display:none}}
-select{font:inherit;font-size:1rem;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
 a{color:var(--accent)}
 .sec{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
-.wiz{position:fixed;inset:0;background:var(--bg);z-index:30;overflow:auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-.wizin{max-width:480px;margin:0 auto;padding:20px 16px 40px}
-.wiz h2{margin:4px 0 16px;font-size:1.4rem}
+.modal{position:fixed;inset:0;z-index:75;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px}
+.modal>.mcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;width:100%;max-width:400px;max-height:85vh;overflow:auto}
 </style>
 </head>
 <body>
 <main>
-<div class="topbar"><h1>Attendance</h1><button id="gear" aria-label="Settings" title="Settings">&#9881;&#xFE0E;</button></div>
+<div class="topbar">
+  <div><h1>Attendance</h1><div class="lbl" id="termLbl"></div></div>
+  <button id="gear" aria-label="Settings" title="Settings">&#9881;&#xFE0E;</button>
+</div>
 <button class="upd" id="upd" hidden></button>
 <div class="notice" id="notice" role="alert" hidden></div>
 <section class="card" id="hero" aria-live="polite">
@@ -132,6 +148,11 @@ a{color:var(--accent)}
     <div class="stat"><span class="lbl">This month</span><b id="mPct"></b></div>
     <div class="stat"><span class="lbl">Classes this month</span><b id="mCls"></b></div>
   </div>
+</section>
+
+<section class="card" id="subCard" hidden>
+  <h4>Subjects</h4>
+  <div id="subList"></div>
 </section>
 
 <section class="card" id="umCard" hidden>
@@ -167,60 +188,132 @@ a{color:var(--accent)}
   <p class="small">Every unmarked day (except Sundays) before that date counts as a working day. Mark holidays on the calendar and this updates.</p>
 </section>
 
-<section class="card" id="setCard">
+<section class="card" id="setCard"><div class="setin">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><h3 id="setTitle" style="margin:0;font-size:1.2rem">Settings</h3><button id="setClose" type="button">Close</button></div>
   <p class="small" id="setSub" style="margin:0 0 12px"></p>
-  <h4>Profile</h4>
+
+  <h4>Profile &amp; Term</h4>
   <label for="pName">Name</label><input id="pName" maxlength="60" autocomplete="name">
   <label for="pCol" style="margin-top:10px">College</label><input id="pCol" maxlength="100">
   <label for="pRoll" style="margin-top:10px">Roll number</label><input id="pRoll" maxlength="30">
-  <div class="sec"><h4 id="baseTitle">Starting numbers</h4>
-  <div class="row">
-    <div><label for="A0">Attended</label><input id="A0" type="number" min="0" inputmode="numeric"></div>
-    <div><label for="C0">Conducted</label><input id="C0" type="number" min="0" inputmode="numeric"></div>
-  </div>
   <div class="row" style="margin-top:10px">
-    <div><label for="asOf">Numbers are up to (date)</label><input id="asOf" type="date"></div>
+    <div><label for="pYear">Year</label><input id="pYear" maxlength="20" placeholder="2nd Year"></div>
+    <div><label for="pSem">Semester</label><input id="pSem" maxlength="20" placeholder="Sem 1"></div>
+    <div><label for="pMid">Mid</label><input id="pMid" maxlength="20" placeholder="Mid 1"></div>
   </div>
-  <p class="small" id="chk"></p>
-  <div class="row" style="margin-top:6px">
-    <div><label for="knownPct">Only know your percentage? Enter it here</label><input id="knownPct" type="number" min="1" max="100" step="0.1" inputmode="decimal"></div>
-    <div><button id="calcC" type="button" style="width:100%">Work out conducted</button></div>
+
+  <div class="sec">
+    <h4 id="baseTitle">College Start &amp; Starting Numbers</h4>
+    <label for="startDate">College / semester start date</label>
+    <input id="startDate" type="date">
+    <div class="pills">
+      <button type="button" id="modeFresh" class="on">Start from Day 1 (0/0)</button>
+      <button type="button" id="modeManual">Manual / Mid-sem entry</button>
+    </div>
+    <div id="manualBox" hidden>
+      <label for="asOf">Numbers are up to (date)</label>
+      <input id="asOf" type="date">
+      <div id="subBaseWrap" hidden style="margin-top:10px">
+        <p class="small" style="margin:0 0 6px">Enter attended &amp; conducted per subject (for colleges without a sheet or mid-sem):</p>
+        <div id="subBaseList"></div>
+      </div>
+      <div id="overallBaseWrap" style="margin-top:10px">
+        <div class="row">
+          <div><label for="A0">Attended</label><input id="A0" type="number" min="0" inputmode="numeric"></div>
+          <div><label for="C0">Conducted</label><input id="C0" type="number" min="0" inputmode="numeric"></div>
+        </div>
+        <p class="small" id="chk"></p>
+        <div class="row" style="margin-top:6px">
+          <div><label for="knownPct">Only know your percentage?</label><input id="knownPct" type="number" min="1" max="100" step="0.1" inputmode="decimal"></div>
+          <div><button id="calcC" type="button" style="width:100%">Work out conducted</button></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <label for="minP">Minimum attendance: <b id="minVal">75</b>%</label>
+      <input id="minP" type="range" min="50" max="100" step="1">
+    </div>
   </div>
-  <div class="row" style="margin-top:10px">
-    <div><label for="minP">Minimum attendance: <b id="minVal">75</b>%</label><input id="minP" type="range" min="50" max="100" step="1"></div>
+
+  <div class="sec">
+    <h4>Subjects (e.g. English, Maths, CRT)</h4>
+    <p class="small" style="margin-top:0">Add your subjects to track each class individually and build your weekly timetable.</p>
+    <div class="row">
+      <div><input id="newSub" maxlength="40" placeholder="Subject name"></div>
+      <div style="flex:0"><button id="addSub" type="button" style="background:var(--accent);color:#fff;border-color:var(--accent)">Add</button></div>
+    </div>
+    <div class="chips" id="subChips"></div>
+
+    <div id="ttEditor" hidden style="margin-top:12px">
+      <h4>Weekly Timetable (Mon–Sat)</h4>
+      <p class="small" style="margin-top:0">Pick a day and tap subjects to add periods in order. Tap a scheduled period to remove it.</p>
+      <div class="wktabs" id="wkTabs"></div>
+      <div class="chips" id="ttSlots"></div>
+      <div class="lbl" style="margin-top:6px">Tap to add period:</div>
+      <div class="chips" id="ttAddChips"></div>
+      <label for="ttFrom" style="margin-top:8px">Apply timetable changes from (protects past attendance)</label>
+      <input id="ttFrom" type="date">
+    </div>
+
+    <div id="pwWrap" style="margin-top:12px">
+      <label>Periods per weekday (if not using named subjects)</label>
+      <div id="pw"></div>
+    </div>
   </div>
-  <div class="row" style="margin-top:10px">
-    <div><label>Periods per weekday: Mon to Sat</label>
-      <div class="row" id="pw"></div></div>
-  </div>
-  </div>
+
   <div class="sec"><h4>Appearance</h4>
     <label for="theme">Theme</label>
     <select id="theme"><option value="system">System default</option><option value="light">Light</option><option value="dark">Dark</option></select>
   </div>
-  <button style="margin-top:14px" id="save0">Save</button>
+
+  <button class="upd" style="margin-top:16px" id="save0">Save</button>
   <div class="msg" id="msg" role="alert"></div>
-  <div class="sec" id="acct"><h4>Account</h4>
+
+  <div class="sec" id="semSec">
+    <h4>Semester &amp; History</h4>
+    <button id="newSemBtn" type="button" style="width:100%">Start New Semester (Reset to 0)</button>
+    <button id="archBtn" type="button" hidden style="width:100%;margin-top:8px"></button>
+    <div id="archList" hidden style="margin-top:8px"></div>
+  </div>
+
+  <div class="sec" id="acct"><h4>Account &amp; Google Drive Backup</h4>
     <p class="small" id="acctInfo" style="margin:0 0 8px"></p>
     <p class="small" id="syncInfo" style="margin:0 0 8px"></p>
+    <button id="syncDriveBtn" type="button" class="upd" hidden>Sync with Google Drive</button>
     <button id="bkEnc" type="button" class="upd" hidden>Turn on end-to-end encryption</button>
     <button id="bkUnl" type="button" class="upd" hidden>Unlock your backup</button>
     <button id="bkStd" type="button" hidden style="width:100%;margin-bottom:10px"></button>
     <button id="bkOff" type="button" hidden style="width:100%;margin-bottom:10px">Turn off backup</button>
     <button id="linkBtn" type="button" class="upd" hidden>Sign in with Google</button>
     <button id="outBtn" type="button">Sign out</button>
-    <button id="delBtn" type="button" class="ba">Delete account</button>
+    <button id="delBtn" type="button" class="ba" style="margin-left:8px">Delete backup &amp; data</button>
     <div class="msg" id="acctMsg" role="alert"></div>
-    <p class="small" id="delNote">Deleting your account erases the data on this device and signs you out for good.</p>
+    <p class="small" id="delNote">Deletes your Google Drive backup and erases local data on this device.</p>
   </div>
+
   <div class="sec" id="about"><h4>About</h4>
-    <p class="small" style="margin:0">Your attendance is stored on this device. If you sign in, you can also back it up from the Account section, either end-to-end encrypted or standard.</p>
+    <p class="small" style="margin:0">Your attendance stays on this device and, if enabled, backs up directly into your own Google Drive app folder. No user list or data is stored on developer servers.</p>
     <p class="small"><a href="https://github.com/sreevachan/attendance-tracker/issues/new">Report a bug or suggest a feature</a></p>
   </div>
-</section>
+</div></section>
 <p class="small" style="text-align:center;margin-top:18px">Made by Sreevachan &middot; Version <span id="ver"></span></p>
 </main>
+
+<div class="modal" id="newSemModal" hidden>
+  <div class="mcard">
+    <h3 style="margin:0 0 8px">Start New Semester</h3>
+    <p class="small" style="margin:0 0 12px">Archives your current semester summary and resets active attendance to 0.</p>
+    <label for="nsYear">New Year</label><input id="nsYear" maxlength="20">
+    <label for="nsSem" style="margin-top:8px">New Semester</label><input id="nsSem" maxlength="20">
+    <label for="nsMid" style="margin-top:8px">Mid</label><input id="nsMid" maxlength="20" value="Mid 1">
+    <label for="nsDate" style="margin-top:8px">New start date</label><input id="nsDate" type="date">
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;color:var(--ink)"><input id="nsKeep" type="checkbox" checked style="width:auto"> Keep existing subjects &amp; timetable</label>
+    <div class="row" style="margin-top:14px">
+      <div><button id="nsCancel" type="button" style="width:100%">Cancel</button></div>
+      <div><button id="nsGo" type="button" class="upd" style="margin:0">Reset &amp; Start</button></div>
+    </div>
+  </div>
+</div>
 
 <div class="welcome" id="welcome" hidden>
   <div class="wcard">
@@ -237,10 +330,10 @@ a{color:var(--accent)}
 
 <div class="gate" id="choice" hidden style="z-index:65">
   <div class="gcard" style="text-align:left">
-    <h1 style="font-size:1.5rem;text-align:center">Back up your attendance?</h1>
-    <p class="small" style="text-align:center;margin:0 0 14px">Choose how it is protected. You can change this later in Settings.</p>
-    <button class="upd" id="chEnc" style="text-align:left"><b>End-to-end encrypted (recommended)</b><br><span style="font-weight:400;font-size:.85rem">Only you can read it. If you lose both your passphrase and recovery code, nobody can recover it.</span></button>
-    <button id="chStd" style="width:100%;text-align:left;margin-bottom:10px"><b>Standard backup</b><br><span style="font-weight:400;font-size:.85rem">Signing in with Google brings it back, with no passphrase. The developer could technically read it.</span></button>
+    <h1 style="font-size:1.5rem;text-align:center">Back up to your Google Drive?</h1>
+    <p class="small" style="text-align:center;margin:0 0 14px">Stored privately in your own Google Drive app folder. You can change this later in Settings.</p>
+    <button class="upd" id="chEnc" style="text-align:left"><b>End-to-end encrypted (recommended)</b><br><span style="font-weight:400;font-size:.85rem">Protected by your passphrase. If you lose both passphrase and recovery code, nobody can recover it.</span></button>
+    <button id="chStd" style="width:100%;text-align:left;margin-bottom:10px"><b>Standard Drive backup</b><br><span style="font-weight:400;font-size:.85rem">Signing in with Google brings it back, with no passphrase.</span></button>
     <button id="chOff" style="width:100%">Not now</button>
   </div>
 </div>
@@ -271,7 +364,7 @@ a{color:var(--accent)}
     <button class="upd" id="gSign">Sign in with Google</button>
     <div class="msg bad" id="gErr" role="alert"></div>
     <button id="gGuest" style="margin-top:8px;width:100%">Continue without an account</button>
-    <p class="small" id="gWarn" hidden>Without an account, your data stays only on this phone. If you delete the app or lose the phone, it can't be recovered. You can sign in later.</p>
+    <p class="small" id="gWarn" hidden>Without an account, your data stays only on this device. You can sign in later in Settings.</p>
     <button id="gOut" hidden style="margin-top:8px;width:100%">Use a different account</button>
     <button id="gErase" hidden style="margin-top:8px;width:100%">Erase this device's data and continue</button>
   </div>
@@ -281,129 +374,273 @@ a{color:var(--accent)}
   <div class="panel" role="dialog" aria-modal="true">
     <h3 id="sTitle"></h3>
     <div class="btns">
-      <button class="bp" id="bP">Present</button>
-      <button class="ba" id="bA">Absent</button>
+      <button class="bp" id="bP">All Present</button>
+      <button class="ba" id="bA">All Absent</button>
       <button class="bh" id="bH">Holiday</button>
       <button id="bC">Clear</button>
     </div>
-    <div class="part">
-      <input id="partN" type="number" min="0" inputmode="numeric" aria-label="Periods attended">
-      <button id="bX" style="white-space:nowrap">Partly present</button>
+    <div id="slotEditor" hidden style="margin-top:12px">
+      <div class="lbl" style="font-weight:600">Or mark each class</div>
+      <div id="slotList"></div>
+      <div class="row" id="extraRow" style="margin-top:8px" hidden>
+        <div><select id="extraSub"></select></div>
+        <div style="flex:0"><button id="extraAdd" type="button">+ Extra</button></div>
+      </div>
+      <button class="upd" id="saveSlots" style="margin-top:12px;margin-bottom:0">Save classes</button>
     </div>
-    <div class="msg bad" id="sErr" role="alert"></div>
+    <div id="partWrap">
+      <div class="part">
+        <input id="partN" type="number" min="0" inputmode="numeric" aria-label="Periods attended">
+        <button id="bX" style="white-space:nowrap">Partly present</button>
+      </div>
+      <div class="msg bad" id="sErr" role="alert"></div>
+    </div>
     <button id="bClose" style="width:100%;margin-top:10px">Close</button>
   </div>
 </div>
 
 <script src="firebase-config.js"></script>
 <script>
-// Website only. In the iPhone app the native side handles sign-in and backup. In a browser, this
-// stand-in does the same job with Firebase and answers through the same callbacks the page already uses.
-// Sign-in is a full-page redirect (no pop-ups). That works in every browser only when the page is served
-// from the same domain as the Firebase auth domain, which is what Firebase Hosting does.
+// Website Google Sign-In & Google Drive appDataFolder backup (zero Firebase Auth / Firestore user lists).
 (function(){
-  var cfg=window.FIREBASE_CONFIG;
   var native=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.auth;
-  if(native||!/^https?:$/.test(location.protocol)||!cfg||String(cfg.apiKey).indexOf("PASTE")===0)return;
-  // Other addresses (GitHub Pages, the .web.app twin) cannot complete sign-in, so send visitors to the auth domain.
-  if(/(github\.io|web\.app)$/.test(location.hostname)&&cfg.authDomain&&location.hostname!==cfg.authDomain){location.replace("https://"+cfg.authDomain+"/");return}
-  var F=null,V="https://www.gstatic.com/firebasejs/10.12.2/",DELKEY="attendance-pending-delete";
+  if(native||!/^https?:$/.test(location.protocol))return;
+  var CLIENT_ID="252190190323-si76bbi8t78v23brs8b0o6jgpdj3o0ht.apps.googleusercontent.com";
+  var SCOPE="openid email profile https://www.googleapis.com/auth/drive.appdata";
+  var UKEY="attendance-auth-user",BACKUP_NAME="attendance-backup.json";
+  var FILES_API="https://www.googleapis.com/drive/v3/files",UPLOAD_API="https://www.googleapis.com/upload/drive/v3/files";
+  var token="",tokenExp=0,fileId=null,gisReady=null,tokenClient=null;
+
   function call(fn,arg){if(window[fn])window[fn](arg)}
-  function who(u){return u?{signedIn:true,uid:u.uid,name:u.displayName||"",email:u.email||""}:{signedIn:false}}
-  function msg(e){
-    var c=(e&&e.code)||"";
-    if(c==="auth/unauthorized-domain")return "This website address is not authorized for sign-in yet.";
-    if(c==="auth/network-request-failed")return "No connection. Check your internet and try again.";
-    if(c==="auth/web-storage-unsupported"||c==="auth/operation-not-supported-in-this-environment")return "This browser blocks the storage that sign-in needs. Try another browser.";
-    return "Sign-in failed"+(c?" ("+c+")":"")+". Try again.";
+  function savedUser(){try{var r=localStorage.getItem(UKEY);return r?JSON.parse(r):null}catch(e){return null}}
+  function saveUser(u){try{if(u)localStorage.setItem(UKEY,JSON.stringify(u));else localStorage.removeItem(UKEY)}catch(e){}}
+
+  function loadGis(){
+    if(gisReady)return gisReady;
+    gisReady=new Promise(function(resolve,reject){
+      if(window.google&&google.accounts&&google.accounts.oauth2){resolve();return}
+      var s=document.createElement("script");
+      s.src="https://accounts.google.com/gsi/client";s.async=true;
+      s.onload=function(){resolve()};
+      s.onerror=function(){reject(new Error("Could not load Google Sign-In."))};
+      document.head.appendChild(s);
+    });
+    return gisReady;
   }
-  function flag(set){try{if(set)sessionStorage.setItem(DELKEY,"1");else sessionStorage.removeItem(DELKEY)}catch(e){}}
-  var ready=(async function(){
-    var a=await import(V+"firebase-app.js"),au=await import(V+"firebase-auth.js"),fs=await import(V+"firebase-firestore.js");
-    var app=a.initializeApp(cfg);
-    F={au:au,fs:fs,auth:au.getAuth(app),db:fs.getFirestore(app)};
-    // Finishes a redirect sign-in. This must run once, when the page loads after coming back from Google.
-    F.back=au.getRedirectResult(F.auth).catch(function(e){return {error:e}});
-  })();
-  ready.catch(function(){call("onAuthError","Could not load sign-in. Check your connection and reload.")});
-  function ref(){return F.fs.doc(F.db,"users",F.auth.currentUser.uid)}
-  function provider(){return new F.au.GoogleAuthProvider()}
+
+  function requestToken(promptMode){
+    return loadGis().then(function(){
+      return new Promise(function(resolve,reject){
+        tokenClient=google.accounts.oauth2.initTokenClient({
+          client_id:CLIENT_ID,
+          scope:SCOPE,
+          callback:function(resp){
+            if(resp&&resp.access_token){
+              token=resp.access_token;
+              tokenExp=Date.now()+((Number(resp.expires_in)||3600)*1000)-60000;
+              resolve(token);
+            }else{
+              reject(new Error((resp&&resp.error_description)||(resp&&resp.error)||"Sign-in cancelled."));
+            }
+          },
+          error_callback:function(err){
+            reject(new Error((err&&err.message)||"Popup blocked or cancelled."));
+          }
+        });
+        tokenClient.requestAccessToken({prompt:promptMode||""});
+      });
+    });
+  }
+
+  function ensureToken(allowPrompt){
+    if(token&&Date.now()<tokenExp)return Promise.resolve(token);
+    return allowPrompt?requestToken(""):Promise.reject(new Error("NEEDS_RECONNECT"));
+  }
+
+  function findFile(tok){
+    var q=encodeURIComponent("name='"+BACKUP_NAME+"' and trashed=false");
+    return fetch(FILES_API+"?spaces=appDataFolder&q="+q+"&fields=files(id,name)",{
+      headers:{Authorization:"Bearer "+tok}
+    }).then(function(r){
+      if(!r.ok)throw new Error("Drive list "+r.status);
+      return r.json();
+    }).then(function(j){
+      fileId=(j.files&&j.files[0]&&j.files[0].id)||null;
+      return fileId;
+    });
+  }
+
+  function downloadFile(tok,id){
+    return fetch(FILES_API+"/"+id+"?alt=media",{headers:{Authorization:"Bearer "+tok}}).then(function(r){
+      if(!r.ok)throw new Error("Drive download "+r.status);
+      return r.json();
+    });
+  }
+
+  function uploadFile(tok,obj){
+    var bodyStr=JSON.stringify(obj);
+    if(fileId){
+      return fetch(UPLOAD_API+"/"+fileId+"?uploadType=media",{
+        method:"PATCH",
+        headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},
+        body:bodyStr
+      }).then(function(r){if(!r.ok)throw new Error("Drive update "+r.status)});
+    }
+    var boundary="att_"+Date.now();
+    var multi="--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+
+      JSON.stringify({name:BACKUP_NAME,parents:["appDataFolder"]})+
+      "\r\n--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+
+      bodyStr+"\r\n--"+boundary+"--";
+    return fetch(UPLOAD_API+"?uploadType=multipart&fields=id",{
+      method:"POST",
+      headers:{Authorization:"Bearer "+tok,"Content-Type":"multipart/related; boundary="+boundary},
+      body:multi
+    }).then(function(r){
+      if(!r.ok)throw new Error("Drive upload "+r.status);
+      return r.json();
+    }).then(function(j){fileId=j.id||null});
+  }
+
+  function deleteDriveFile(tok){
+    return (fileId?Promise.resolve(fileId):findFile(tok)).then(function(id){
+      if(!id)return;
+      return fetch(FILES_API+"/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+tok}}).then(function(){fileId=null});
+    });
+  }
+
   window.WEBAUTH={postMessage:function(m){
     var act=m.action;
     if(act==="status"){
-      ready.then(async function(){
-        var res=await F.back,del=false;
-        try{del=sessionStorage.getItem(DELKEY)==="1"}catch(e){}
-        if(del){
-          flag(false);
-          // Back from the fresh sign-in that account deletion needs: finish deleting.
-          if(res&&res.user){
-            try{await F.fs.deleteDoc(F.fs.doc(F.db,"users",res.user.uid));await F.au.deleteUser(res.user);call("onDeleted");return}
-            catch(e){call("onAuthError","Could not delete the account. Try again.")}
-          }
-        }
-        var u=await new Promise(function(r){var un=F.au.onAuthStateChanged(F.auth,function(x){un();r(x)})});
-        call("onAuth",who(u));
-        if(res&&res.error)call("onAuthError",msg(res.error));
+      var u=savedUser();
+      call("onAuth",u?{signedIn:true,uid:u.uid,name:u.name||"",email:u.email||""}:{signedIn:false});
+      return;
+    }
+    if(act==="signIn"||act==="connectDrive"){
+      requestToken(act==="signIn"?"select_account":"consent").then(function(tok){
+        return fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+tok}}).then(function(r){
+          if(!r.ok)throw new Error("Profile error");
+          return r.json();
+        });
+      }).then(function(info){
+        var u={uid:info.sub,name:info.name||"",email:info.email||""};
+        saveUser(u);
+        call("onAuth",{signedIn:true,uid:u.uid,name:u.name,email:u.email});
+      }).catch(function(e){
+        call("onAuthError",(e&&e.message)||"Sign-in failed. Try again.");
       });
       return;
     }
-    if(!F){call("onAuthError","Still loading. Tap again in a moment.");return}
-    if(act==="signIn"){F.au.signInWithRedirect(F.auth,provider()).catch(function(e){call("onAuthError",msg(e))});return}
-    if(act==="signOut"){F.au.signOut(F.auth).then(function(){call("onAuth",{signedIn:false})});return}
-    var u=F.auth.currentUser;if(!u)return;
+    if(act==="signOut"){
+      if(token&&window.google&&google.accounts&&google.accounts.oauth2){try{google.accounts.oauth2.revoke(token,function(){})}catch(e){}}
+      token="";tokenExp=0;fileId=null;saveUser(null);
+      call("onAuth",{signedIn:false});
+      return;
+    }
     if(act==="delete"){
-      flag(true);
-      F.au.reauthenticateWithRedirect(u,provider()).catch(function(){flag(false);call("onAuthError","Could not confirm your identity. Try again.")});
+      ensureToken(true).then(deleteDriveFile).then(function(){
+        token="";tokenExp=0;fileId=null;saveUser(null);
+        call("onDeleted");
+      }).catch(function(){
+        token="";tokenExp=0;fileId=null;saveUser(null);
+        call("onDeleted");
+      });
       return;
     }
     if(act==="cloudGet"){
-      F.fs.getDoc(ref()).then(function(s){call("onCloud",{op:"get",ok:true,exists:s.exists(),doc:s.exists()?s.data():undefined})})
-        .catch(function(){call("onCloud",{op:"get",ok:false})});
+      ensureToken(false).then(function(tok){
+        return findFile(tok).then(function(id){
+          if(!id){call("onCloud",{op:"get",ok:true,exists:false});return}
+          return downloadFile(tok,id).then(function(doc){
+            call("onCloud",{op:"get",ok:true,exists:true,doc:doc});
+          });
+        });
+      }).catch(function(e){
+        call("onCloud",{op:"get",ok:false,needsReconnect:e&&e.message==="NEEDS_RECONNECT"});
+      });
       return;
     }
-    if(act==="cloudPut"){F.fs.setDoc(ref(),m.doc).then(function(){call("onCloud",{op:"put",ok:true})}).catch(function(){call("onCloud",{op:"put",ok:false})});return}
-    if(act==="cloudDelete"){F.fs.deleteDoc(ref()).then(function(){call("onCloud",{op:"delete",ok:true})}).catch(function(){call("onCloud",{op:"delete",ok:false})})}
+    if(act==="cloudPut"){
+      ensureToken(false).then(function(tok){
+        return (fileId?Promise.resolve(fileId):findFile(tok)).then(function(){
+          return uploadFile(tok,m.doc);
+        });
+      }).then(function(){
+        call("onCloud",{op:"put",ok:true});
+      }).catch(function(e){
+        call("onCloud",{op:"put",ok:false,needsReconnect:e&&e.message==="NEEDS_RECONNECT"});
+      });
+      return;
+    }
+    if(act==="cloudDelete"){
+      ensureToken(true).then(deleteDriveFile).then(function(){
+        call("onCloud",{op:"delete",ok:true});
+      }).catch(function(){
+        call("onCloud",{op:"delete",ok:false});
+      });
+    }
   }};
 })();
 </script>
 <script>
 (function(){
-  // Storage: v3 is the current format. v2 is the old format, kept untouched as a backup.
   var KEY="attendance-v3",OLD="attendance-v2",OLD_BAK="attendance-v2-backup",OLD_BASE_END="2026-10-31";
+  var VERSION="2.1.0",BUILD=3,VERSION_URL="https://raw.githubusercontent.com/sreevachan/attendance-tracker/main/version.json";
   var canSave=true,notice="";
 
+  function isoToday(){
+    var d=new Date();
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  function shiftIso(k,delta){
+    var a=k.split("-"),d=new Date(+a[0],+a[1]-1,+a[2]+delta);
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
   function defaults(){
-    return {v:3,settings:{minPct:75,theme:"system"},profile:null,pw:[0,6,5,6,6,6,5],
-      base:{a:30,c:40,asOf:OLD_BASE_END},days:{},exam:"2027-06-30"};
+    var td=isoToday();
+    return {v:4,settings:{minPct:75,theme:"system"},profile:null,pw:[0,6,5,6,6,6,5],
+      subjects:[],timetable:[],startDate:td,base:{a:0,c:0,asOf:shiftIso(td,-1)},days:{},exam:shiftIso(td,120),archives:[]};
   }
   function dowOf(k){var a=k.split("-");return new Date(+a[0],+a[1]-1,+a[2]).getDay()}
-
-  // Convert the old v2 data. Each marked day now stores its own class count (n),
-  // taken from the weekday timetable as it is at migration time.
-  function migrate(o){
+  function migrateV2(o){
     if(!o||!o.pw||o.pw.length!==7||!o.days)throw new Error("bad v2 data");
     var s=defaults(),i;
     for(i=0;i<7;i++){var w=+o.pw[i];if(isNaN(w)||w<0||w>12)throw new Error("bad timetable");s.pw[i]=w}
-    var a=+o.A0,c=+o.C0;
-    if(isNaN(a)||isNaN(c)||a<0||c<a)throw new Error("bad totals");
-    s.base={a:a,c:c,asOf:OLD_BASE_END};
-    s.exam=(o.exam&&o.exam!=="2026-12-10")?o.exam:"2027-06-30";
+    var a=+o.A0,c=+o.C0;if(isNaN(a)||isNaN(c)||a<0||c<a)throw new Error("bad totals");
+    s.base={a:a,c:c,asOf:OLD_BASE_END};s.startDate=shiftIso(OLD_BASE_END,1);
+    s.exam=(o.exam&&o.exam!=="2026-12-10")?o.exam:s.exam;
     Object.keys(o.days).forEach(function(k){
-      var e=o.days[k];
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!e||["P","A","H","X"].indexOf(e.s)<0)return;
-      var n=s.pw[dowOf(k)]||0,d={s:e.s,n:n};
-      if(e.s==="X")d.a=Math.max(0,Math.min(+e.a||0,n));
-      s.days[k]=d;
+      var e=o.days[k];if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!e||["P","A","H","X"].indexOf(e.s)<0)return;
+      var n=s.pw[dowOf(k)]||0,d={s:e.s,n:n};if(e.s==="X")d.a=Math.max(0,Math.min(+e.a||0,n));s.days[k]=d;
     });
     return s;
   }
-
+  function normalizeV4(p){
+    var d=defaults();
+    p.v=4;
+    p.settings=p.settings||{minPct:75,theme:"system"};
+    p.settings.theme=p.settings.theme||"system";
+    p.settings.minPct=p.settings.minPct||75;
+    if(p.profile===undefined)p.profile=null;
+    p.pw=(p.pw&&p.pw.length===7)?p.pw:d.pw;
+    p.subjects=Array.isArray(p.subjects)?p.subjects:[];
+    p.timetable=Array.isArray(p.timetable)?p.timetable:[];
+    p.archives=Array.isArray(p.archives)?p.archives:[];
+    p.base=p.base||d.base;
+    p.startDate=p.startDate||(p.base.asOf?shiftIso(p.base.asOf,1):d.startDate);
+    p.days=p.days||{};
+    p.exam=p.exam||d.exam;
+    return p;
+  }
   function load(){
     var raw=null,old=null;
     try{raw=localStorage.getItem(KEY)}catch(e){}
     if(raw){
-      try{var p=JSON.parse(raw);if(p&&p.v===3&&p.pw&&p.pw.length===7&&p.days&&p.base&&p.settings)return p}catch(e){}
+      try{
+        var p=JSON.parse(raw);
+        if(p&&(p.v===3||p.v===4)&&p.pw&&p.pw.length===7&&p.days&&p.base&&p.settings){
+          return normalizeV4(p);
+        }
+      }catch(e){}
       canSave=false;notice="Saved data could not be read, so saving is paused. Nothing was changed.";
       return defaults();
     }
@@ -411,12 +648,9 @@ a{color:var(--accent)}
     if(old){
       try{
         if(!localStorage.getItem(OLD_BAK))localStorage.setItem(OLD_BAK,old);
-        var s=migrate(JSON.parse(old));
-        localStorage.setItem(KEY,JSON.stringify(s));
-        return s;
+        var s=migrateV2(JSON.parse(old));localStorage.setItem(KEY,JSON.stringify(s));return s;
       }catch(e){
-        canSave=false;notice="Your older data could not be converted, so saving is paused. The old data is untouched.";
-        return defaults();
+        canSave=false;notice="Your older data could not be converted, so saving is paused.";return defaults();
       }
     }
     return defaults();
@@ -424,12 +658,13 @@ a{color:var(--accent)}
 
   var st=load();
   var AUTH=(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.auth)||window.WEBAUTH;
-  var VERSION="2.0.0",BUILD=2,VERSION_URL="https://raw.githubusercontent.com/sreevachan/attendance-tracker/main/version.json";
-  st.settings.theme=st.settings.theme||"system";if(st.profile===undefined)st.profile=null;
   var lastPs="",cloudReady=false,saveTimer=null,DK=null,META=null,CLOUD=null,pending=null,KKEY="attendance-key";
-  function payload(){return {profile:st.profile,settings:st.settings,pw:st.pw,base:st.base,days:st.days,exam:st.exam}}
+
+  function payload(){
+    return {v:4,profile:st.profile,settings:st.settings,pw:st.pw,subjects:st.subjects,
+      timetable:st.timetable,startDate:st.startDate,base:st.base,days:st.days,exam:st.exam,archives:st.archives};
+  }
   lastPs=JSON.stringify(payload());
-  // A real change stamps the time and, once the backup is ready, schedules an encrypted upload.
   function save(){
     if(!canSave)return;
     var ps=JSON.stringify(payload());
@@ -444,33 +679,88 @@ a{color:var(--accent)}
   function keyOf(d){return key(d.getFullYear(),d.getMonth(),d.getDate())}
   function todayKey(){return keyOf(now)}
   function dow(k){return dowOf(k)}
-  function per(k){return st.pw[dow(k)]||0}
-  function dayN(k){var e=st.days[k];return(e&&e.n)||per(k)}
+  function timetableForDate(k){
+    if(!st.timetable||!st.timetable.length)return null;
+    var sorted=st.timetable.slice().sort(function(a,b){return a.from<b.from?-1:a.from>b.from?1:0});
+    var picked=sorted[0];
+    for(var i=0;i<sorted.length;i++){if(sorted[i].from<=k)picked=sorted[i]}
+    return picked.days;
+  }
+  function scheduledForDate(k){
+    var w=dow(k);if(w===0)return [];
+    var tt=timetableForDate(k);
+    return tt?(tt[w]||[]):[];
+  }
+  function per(k){
+    var w=dow(k);if(w===0)return 0;
+    var tt=timetableForDate(k);
+    if(tt)return (tt[w]||[]).length;
+    return st.pw[w]||0;
+  }
+  function dayN(k){
+    var e=st.days[k];
+    if(e&&e.slots)return e.slots.filter(function(x){return x.st!=="H"}).length;
+    return (e&&e.n)||per(k);
+  }
   function MIN(){return st.settings.minPct}
   function nextDay(k){var a=k.split("-");return new Date(+a[0],+a[1]-1,+a[2]+1)}
   function niceDate(k,o){var a=k.split("-");return new Date(+a[0],+a[1]-1,+a[2]).toLocaleDateString(undefined,o)}
-  function attOf(e){return e.s==="P"?e.n:e.s==="X"?Math.min(e.a||0,e.n):0}
-
+  function dayCounts(e){
+    if(!e)return {a:0,c:0};
+    if(e.slots){
+      var a=0,c=0;
+      e.slots.forEach(function(sl){if(sl.st==="P"){a++;c++}else if(sl.st==="A"){c++}});
+      return {a:a,c:c};
+    }
+    if(e.s==="H"||!e.n)return {a:0,c:0};
+    return {a:e.s==="P"?e.n:e.s==="X"?Math.min(e.a||0,e.n):0,c:e.n};
+  }
+  function overallBase(){
+    if(!st.subjects||!st.subjects.length)return {a:st.base.a||0,c:st.base.c||0};
+    var sa=0,sc=0;
+    st.subjects.forEach(function(s){sa+=(s.baseA||0);sc+=(s.baseC||0)});
+    return {a:sa+(st.base.a||0),c:sc+(st.base.c||0)};
+  }
   function totals(prefix){
     var A=0,C=0,days=0,tot=0;
     Object.keys(st.days).forEach(function(k){
       if(prefix&&k.indexOf(prefix)!==0)return;
-      var e=st.days[k];if(e.s==="H"||!e.n)return;
-      A+=attOf(e);C+=e.n;tot++;if(e.s==="P")days++;
+      var dc=dayCounts(st.days[k]);if(dc.c<=0)return;
+      A+=dc.a;C+=dc.c;tot++;if(dc.a===dc.c)days++;
     });
     return {A:A,C:C,days:days,tot:tot};
   }
-  // Past working days after the starting date that have no mark yet.
+  function subjectStats(){
+    if(!st.subjects||!st.subjects.length)return [];
+    var am={},cm={};
+    Object.keys(st.days).forEach(function(k){
+      var sl=st.days[k]&&st.days[k].slots;if(!sl)return;
+      sl.forEach(function(x){
+        if(x.st==="P"){am[x.sub]=(am[x.sub]||0)+1;cm[x.sub]=(cm[x.sub]||0)+1}
+        else if(x.st==="A"){cm[x.sub]=(cm[x.sub]||0)+1}
+      });
+    });
+    return st.subjects.map(function(s){
+      var a=(s.baseA||0)+(am[s.id]||0),c=(s.baseC||0)+(cm[s.id]||0),minP=s.minPct||MIN();
+      var pct=c?a/c*100:0,ok=c>0&&a*100>=minP*c;
+      var miss=ok&&minP>0?Math.max(0,Math.floor((a*100-minP*c)/minP)):0;
+      var need=!ok&&c>0?(minP>=100?-1:Math.max(0,Math.ceil((minP*c-100*a)/(100-minP)))):0;
+      return {sub:s,a:a,c:c,pct:pct,minP:minP,ok:ok,miss:miss,need:need};
+    });
+  }
   function unmarked(){
     var out=[],t=todayKey(),d=nextDay(st.base.asOf);
     for(var i=0;i<800;i++){var k=keyOf(d);if(k>=t)break;if(!st.days[k]&&per(k)>0)out.push(k);d.setDate(d.getDate()+1)}
     return out;
   }
   function fmt(x){return x.toFixed(1)+"%"}
+  function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 
   function draw(){
-    var all=totals(""),A=st.base.a+all.A,C=st.base.c+all.C,p=C?A/C*100:0,ok=C>0&&A*100>=MIN()*C;
+    var ob=overallBase(),all=totals(""),A=ob.a+all.A,C=ob.c+all.C,p=C?A/C*100:0,ok=C>0&&A*100>=MIN()*C;
     try{window.webkit.messageHandlers.att.postMessage({pct:p,a:A,c:C,min:MIN()})}catch(e){}
+    var pr=st.profile||{};
+    $("termLbl").textContent=[pr.year,pr.sem,pr.mid].filter(Boolean).join(" · ");
     $("notice").hidden=!notice;$("notice").textContent=notice;
     $("pct").textContent=fmt(p);$("pct").className="big "+(ok?"good":"bad");document.title=fmt(p)+" attendance";
     if(wasOk===false&&ok)celebrate();wasOk=ok;
@@ -478,14 +768,24 @@ a{color:var(--accent)}
     $("mark").style.left=MIN()+"%";$("minLbl").style.left=MIN()+"%";$("minLbl").textContent=MIN()+"% minimum";
     $("status").innerHTML=ok?'<span class="good">Above '+MIN()+'%</span>':'<span class="bad">Below '+MIN()+'%</span>';
     var pre=view.getFullYear()+"-"+String(view.getMonth()+1).padStart(2,"0"),m=totals(pre);
-    $("dAtt").textContent=m.days+" of "+m.tot+" days";
-    $("cAtt").textContent=A+" / "+C;
-    $("mPct").textContent=m.C?fmt(m.A/m.C*100):"–";
-    $("mCls").textContent=m.A+" / "+m.C;
+    $("dAtt").textContent=m.days+" of "+m.tot+" days";$("cAtt").textContent=A+" / "+C;
+    $("mPct").textContent=m.C?fmt(m.A/m.C*100):"–";$("mCls").textContent=m.A+" / "+m.C;
     $("mTitle").textContent=view.toLocaleDateString(undefined,{month:"long",year:"numeric"});
-    $("baseTitle").textContent="Starting numbers (up to "+niceDate(st.base.asOf,{day:"numeric",month:"short"})+")";
-    $("calHelp").textContent="Tap a date to mark it. Sundays are off. Dates up to "+niceDate(st.base.asOf,{day:"numeric",month:"short"})+" are already in your starting numbers.";
-    drawCal();drawUnmarked();drawPlan(A,C);
+    $("calHelp").textContent="Tap a date to mark it. Sundays are off. College start: "+niceDate(st.startDate,{day:"numeric",month:"short"})+".";
+    drawSubjects();drawCal();drawUnmarked();drawPlan(A,C);
+  }
+  function drawSubjects(){
+    var list=subjectStats(),box=$("subList");
+    $("subCard").hidden=!list.length;box.innerHTML="";
+    list.forEach(function(x){
+      var col=x.c===0?"var(--mute)":(x.ok?"var(--good)":"var(--bad)");
+      var hint=x.c===0?"No classes yet":(x.ok?"Can miss "+x.miss:(x.need<0?"Needs 100%":"Attend next "+x.need));
+      var d=document.createElement("div");d.className="subcard";
+      d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><b>'+esc(x.sub.name)+'</b><b style="color:'+col+'">'+(x.c?fmt(x.pct):"–")+'</b></div>'+
+        '<div class="subbar"><div class="subfill" style="width:'+(x.c?Math.min(100,x.pct):0)+'%;background:'+col+'"></div></div>'+
+        '<div class="lbl" style="display:flex;justify-content:space-between"><span>'+x.a+' / '+x.c+' classes</span><span>'+hint+' ('+x.minP+'% min)</span></div>';
+      box.appendChild(d);
+    });
   }
   function drawCal(){
     var cal=$("cal");cal.innerHTML="";
@@ -516,17 +816,13 @@ a{color:var(--accent)}
     var ex=st.exam,L=0,d=new Date(now.getFullYear(),now.getMonth(),now.getDate());
     $("exam").value=ex||"";
     if(!ex){$("plan").textContent="Pick a date.";return}
-    for(var i=0;i<800;i++){var k=keyOf(d);if(k>=ex)break;
-      if(!st.days[k]&&k>st.base.asOf)L+=per(k);d.setDate(d.getDate()+1)}
-    if(C+L===0){$("plan").textContent="Add your starting numbers to see the plan.";return}
-    // Integer maths: the most classes you can miss and still stay at or above the minimum.
+    for(var i=0;i<800;i++){var k=keyOf(d);if(k>=ex)break;if(!st.days[k]&&k>st.base.asOf)L+=per(k);d.setDate(d.getDate()+1)}
+    if(C+L===0){$("plan").textContent="Add your starting numbers or timetable to see the plan.";return}
     var mm=Math.min(L,Math.floor(((A+L)*100-MIN()*(C+L))/100));
     var h="<b>"+L+"</b> classes left until that date. Full attendance gets you to <b>"+fmt((A+L)/(C+L)*100)+"</b>.";
     h+="<br>"+MIN()+"%: "+(mm>=0?"you can miss up to <b>"+mm+"</b> classes.":"<span class='bad'>not reachable</span> by then.");
     $("plan").innerHTML=h;
   }
-
-  // Small celebration when the percentage moves from below the minimum to at or above it.
   function celebrate(){
     if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;
     var hero=$("hero"),big=$("pct"),cols=["var(--good)","var(--accent)","var(--warn)"],i;
@@ -540,26 +836,71 @@ a{color:var(--accent)}
       setTimeout(function(e){return function(){if(e.parentNode)e.parentNode.removeChild(e)}}(sp),1000);
     }
   }
+
+  var editSlots=[];
+  function renderSlotEditor(){
+    var box=$("slotList");box.innerHTML="";
+    var subMap={};st.subjects.forEach(function(s){subMap[s.id]=s.name});
+    editSlots.forEach(function(sl,idx){
+      var row=document.createElement("div");row.className="slotrow";
+      var nm=subMap[sl.sub]||("Class "+(idx+1));
+      row.innerHTML='<span style="font-size:.9rem;font-weight:600">'+(idx+1)+'. '+esc(nm)+'</span>';
+      var btns=document.createElement("div");btns.className="slotbtns";
+      [["P","P"],["A","A"],["H","Off"]].forEach(function(pair){
+        var b=document.createElement("button");b.type="button";b.textContent=pair[1];
+        if(sl.st===pair[0])b.className="sel"+pair[0];
+        b.onclick=function(){editSlots[idx]={sub:sl.sub,st:pair[0]};renderSlotEditor()};
+        btns.appendChild(b);
+      });
+      row.appendChild(btns);box.appendChild(row);
+    });
+    var exSel=$("extraSub");exSel.innerHTML="";
+    st.subjects.forEach(function(s){var o=document.createElement("option");o.value=s.id;o.textContent=s.name;exSel.appendChild(o)});
+    $("extraRow").hidden=!st.subjects.length;
+  }
   function openSheet(k){
     sel=k;$("sErr").textContent="";
-    $("sTitle").textContent=niceDate(k,{weekday:"long",day:"numeric",month:"long"})+" ("+dayN(k)+" classes)";
-    $("partN").value=st.days[k]&&st.days[k].s==="X"?st.days[k].a:"";
-    $("partN").placeholder="Classes attended";
+    var cur=st.days[k],sched=scheduledForDate(k);
+    var hasSlots=Boolean((cur&&cur.slots)||sched.length);
+    if(hasSlots){
+      editSlots=(cur&&cur.slots)?cur.slots.map(function(x){return {sub:x.sub,st:x.st}}):sched.map(function(id){return {sub:id,st:"P"}});
+      renderSlotEditor();
+    }else{
+      editSlots=[];
+    }
+    $("slotEditor").hidden=!hasSlots;$("partWrap").hidden=hasSlots;
+    $("sTitle").textContent=niceDate(k,{weekday:"long",day:"numeric",month:"long"})+" ("+(hasSlots?editSlots.filter(function(x){return x.st!=="H"}).length:dayN(k))+" classes)";
+    $("partN").value=cur&&cur.s==="X"?cur.a:"";$("partN").placeholder="Classes attended";
     $("sheet").classList.add("on");
   }
+  $("extraAdd").onclick=function(){
+    var id=$("extraSub").value;if(!id)return;
+    editSlots.push({sub:id,st:"P"});renderSlotEditor();
+  };
+  $("saveSlots").onclick=function(){
+    if(!sel)return;
+    var act=editSlots.filter(function(x){return x.st!=="H"}).length;
+    var pres=editSlots.filter(function(x){return x.st==="P"}).length;
+    var s=act===0?"H":(pres===act?"P":(pres===0?"A":"X"));
+    st.days[sel]={s:s,n:act,a:s==="X"?pres:undefined,slots:editSlots.slice()};
+    finish();
+  };
   function finish(){save();$("sheet").classList.remove("on");draw()}
   function mark(s,a){
     if(!sel)return;
-    var e={s:s,n:dayN(sel)};if(s==="X")e.a=a;
-    st.days[sel]=e;finish();
+    var sched=scheduledForDate(sel);
+    if(sched.length&&(s==="P"||s==="A"||s==="H")){
+      var slots=sched.map(function(id){return {sub:id,st:s}});
+      st.days[sel]={s:s,n:s==="H"?0:slots.length,slots:slots};
+    }else{
+      var e={s:s,n:dayN(sel)};if(s==="X")e.a=a;st.days[sel]=e;
+    }
+    finish();
   }
-  $("bP").onclick=function(){mark("P")};
-  $("bA").onclick=function(){mark("A")};
-  $("bH").onclick=function(){mark("H")};
-  $("bC").onclick=function(){if(sel){delete st.days[sel];finish()}};
+  $("bP").onclick=function(){mark("P")};$("bA").onclick=function(){mark("A")};
+  $("bH").onclick=function(){mark("H")};$("bC").onclick=function(){if(sel){delete st.days[sel];finish()}};
   $("bX").onclick=function(){
-    if(!sel)return;
-    var n=dayN(sel),v=parseInt($("partN").value,10);
+    if(!sel)return;var n=dayN(sel),v=parseInt($("partN").value,10);
     if(isNaN(v)||v<0||v>n){$("sErr").textContent="Enter a number from 0 to "+n+".";return}
     mark("X",v);
   };
@@ -568,30 +909,134 @@ a{color:var(--accent)}
   $("prev").onclick=function(){view=new Date(view.getFullYear(),view.getMonth()-1,1);draw()};
   $("next").onclick=function(){view=new Date(view.getFullYear(),view.getMonth()+1,1);draw()};
   $("exam").onchange=function(){st.exam=$("exam").value;save();draw()};
-
-  // Two-step confirm, because WKWebView ignores confirm() dialogs.
   $("umAll").onclick=function(){
     if(!armed){armed=true;drawUnmarked();setTimeout(function(){armed=false;drawUnmarked()},4000);return}
-    unmarked().forEach(function(k){st.days[k]={s:"P",n:per(k)}});
+    unmarked().forEach(function(k){
+      var sched=scheduledForDate(k);
+      if(sched.length)st.days[k]={s:"P",n:sched.length,slots:sched.map(function(id){return {sub:id,st:"P"}})};
+      else st.days[k]={s:"P",n:per(k)};
+    });
     armed=false;save();draw();
   };
 
+  // Settings / Setup Form State
+  var editSubjects=[],editTtDays=[[],[],[],[],[],[],[]],selWk=1,startFresh=true,showArch=false;
   var pw=$("pw");["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].forEach(function(n,i){
     var w=document.createElement("div"),inp=document.createElement("input");inp.type="number";inp.min=0;inp.max=12;inp.id="pw"+(i+1);inp.setAttribute("aria-label",n);inp.value=st.pw[i+1];
-    var l=document.createElement("div");l.className="lbl";l.textContent=n;w.appendChild(inp);w.appendChild(l);pw.appendChild(w)});
-  function fillForm(){
-    $("A0").value=st.base.a;$("C0").value=st.base.c;$("minP").value=MIN();$("minVal").textContent=MIN();$("asOf").value=st.base.asOf;
-    var p=st.profile||{};$("pName").value=p.name||"";$("pCol").value=p.college||"";$("pRoll").value=p.roll||"";
-    $("theme").value=st.settings.theme;$("ver").textContent=VERSION;updateChk();
-    for(var i=1;i<=6;i++)$("pw"+i).value=st.pw[i];
+    var l=document.createElement("div");l.className="lbl";l.textContent=n;w.appendChild(inp);w.appendChild(l);pw.appendChild(w);
+  });
+
+  function renderSubSettings(){
+    var chips=$("subChips");chips.innerHTML="";
+    editSubjects.forEach(function(sub,idx){
+      var b=document.createElement("button");b.type="button";b.className="chip";
+      b.textContent=sub.name+" ×";
+      b.onclick=function(){
+        editSubjects.splice(idx,1);
+        for(var d=0;d<7;d++)editTtDays[d]=editTtDays[d].filter(function(id){return id!==sub.id});
+        renderSubSettings();
+      };
+      chips.appendChild(b);
+    });
+    var hasSub=editSubjects.length>0;
+    $("ttEditor").hidden=!hasSub;$("pwWrap").hidden=hasSub;
+    $("subBaseWrap").hidden=!hasSub;$("overallBaseWrap").hidden=hasSub;
+
+    // Per-subject manual baseline inputs
+    var sb=$("subBaseList");sb.innerHTML="";
+    editSubjects.forEach(function(sub,idx){
+      var row=document.createElement("div");row.className="row";row.style.marginTop="6px";row.style.alignItems="center";
+      row.innerHTML='<div style="font-size:.9rem;font-weight:600">'+esc(sub.name)+'</div>'+
+        '<div style="flex:0 0 80px"><label>Att</label><input type="number" min="0" data-sa="'+idx+'" value="'+(sub.baseA||0)+'"></div>'+
+        '<div style="flex:0 0 80px"><label>Cond</label><input type="number" min="0" data-sc="'+idx+'" value="'+(sub.baseC||0)+'"></div>';
+      sb.appendChild(row);
+    });
+    sb.querySelectorAll("[data-sa]").forEach(function(el){
+      el.oninput=function(){editSubjects[+el.dataset.sa].baseA=Math.max(0,parseInt(el.value,10)||0)};
+    });
+    sb.querySelectorAll("[data-sc]").forEach(function(el){
+      el.oninput=function(){editSubjects[+el.dataset.sc].baseC=Math.max(0,parseInt(el.value,10)||0)};
+    });
+
+    // Timetable weekday tabs & slots
+    var tabs=$("wkTabs");tabs.innerHTML="";
+    ["Mon","Tue","Wed","Thu","Fri","Sat"].forEach(function(lbl,i){
+      var dowIdx=i+1,b=document.createElement("button");b.type="button";
+      if(selWk===dowIdx)b.className="on";
+      b.innerHTML=lbl+"<br><small>"+editTtDays[dowIdx].length+"</small>";
+      b.onclick=function(){selWk=dowIdx;renderSubSettings()};
+      tabs.appendChild(b);
+    });
+    var subMap={};editSubjects.forEach(function(s){subMap[s.id]=s.name});
+    var slotsBox=$("ttSlots");slotsBox.innerHTML="";
+    editTtDays[selWk].forEach(function(id,sIdx){
+      var b=document.createElement("button");b.type="button";b.className="chip on";
+      b.textContent=(sIdx+1)+". "+(subMap[id]||"?")+" ×";
+      b.onclick=function(){editTtDays[selWk].splice(sIdx,1);renderSubSettings()};
+      slotsBox.appendChild(b);
+    });
+    var addBox=$("ttAddChips");addBox.innerHTML="";
+    editSubjects.forEach(function(sub){
+      var b=document.createElement("button");b.type="button";b.className="chip";
+      b.textContent="+ "+sub.name;
+      b.onclick=function(){editTtDays[selWk].push(sub.id);renderSubSettings()};
+      addBox.appendChild(b);
+    });
   }
-  // First run: the settings card opens full screen as a setup form.
+  $("addSub").onclick=function(){
+    var nm=$("newSub").value.trim();
+    if(!nm)return;
+    if(editSubjects.some(function(s){return s.name.toLowerCase()===nm.toLowerCase()}))return;
+    editSubjects.push({id:"s_"+Date.now()+"_"+editSubjects.length,name:nm,baseA:0,baseC:0});
+    $("newSub").value="";renderSubSettings();
+  };
+  function syncStartModeUI(){
+    $("modeFresh").className=startFresh?"on":"";
+    $("modeManual").className=startFresh?"":"on";
+    $("manualBox").hidden=startFresh;
+  }
+  $("modeFresh").onclick=function(){startFresh=true;syncStartModeUI()};
+  $("modeManual").onclick=function(){startFresh=false;syncStartModeUI()};
+
+  function fillForm(){
+    var p=st.profile||{};
+    $("pName").value=p.name||"";$("pCol").value=p.college||"";$("pRoll").value=p.roll||"";
+    $("pYear").value=p.year||"";$("pSem").value=p.sem||"";$("pMid").value=p.mid||"";
+    $("startDate").value=st.startDate||isoToday();
+    $("asOf").value=st.base.asOf||shiftIso(isoToday(),-1);
+    $("A0").value=st.base.a||0;$("C0").value=st.base.c||0;
+    $("minP").value=MIN();$("minVal").textContent=MIN();
+    $("theme").value=st.settings.theme;$("ver").textContent=VERSION;
+    for(var i=1;i<=6;i++)$("pw"+i).value=st.pw[i];
+    editSubjects=(st.subjects||[]).map(function(s){return {id:s.id,name:s.name,minPct:s.minPct||null,baseA:s.baseA||0,baseC:s.baseC||0}});
+    var latest=(st.timetable&&st.timetable.length)?st.timetable[st.timetable.length-1].days:[[],[],[],[],[],[],[]];
+    editTtDays=latest.map(function(arr){return arr.slice()});
+    $("ttFrom").value=st.profile?todayKey():$("startDate").value;
+    startFresh=!((st.base.c||0)>0||editSubjects.some(function(s){return s.baseC>0}));
+    syncStartModeUI();renderSubSettings();updateChk();renderArchives();
+  }
+  function renderArchives(){
+    var arch=st.archives||[];
+    $("archBtn").hidden=!arch.length;
+    $("archBtn").textContent=showArch?"Hide past semesters":"View past semesters ("+arch.length+")";
+    var box=$("archList");box.hidden=!showArch||!arch.length;box.innerHTML="";
+    arch.forEach(function(a){
+      var d=document.createElement("div");d.className="subcard";
+      var lbl=[a.year,a.sem,a.mid].filter(Boolean).join(" · ")||"Past Semester";
+      var p=a.conducted?fmt(a.attended/a.conducted*100):"–";
+      d.innerHTML='<div style="display:flex;justify-content:space-between"><b>'+esc(lbl)+'</b><b style="color:var(--accent)">'+p+'</b></div>'+
+        '<div class="lbl">'+a.attended+' / '+a.conducted+' classes ('+esc(a.startDate)+' to '+esc(a.endDate)+')</div>';
+      box.appendChild(d);
+    });
+  }
+  $("archBtn").onclick=function(){showArch=!showArch;renderArchives()};
+
   function setupMode(on){
     var c=$("setCard");if(on){c.classList.add("page");c.scrollTop=0}
     $("setTitle").textContent=on?"Welcome":"Settings";
-    $("setSub").textContent=on?"Enter your details once. Your numbers are filled in already, so check them and continue.":"";
+    $("setSub").textContent=on?"Set up your profile, college start date, and subjects once to get started.":"";
     $("save0").textContent=on?"Save and continue":"Save";
-    $("about").hidden=on;$("acct").hidden=on||!AUTH;$("setClose").hidden=on;
+    $("about").hidden=on;$("semSec").hidden=on;$("acct").hidden=on||!AUTH;$("setClose").hidden=on;
   }
   function openSettings(){fillForm();msg("",false);var c=$("setCard");c.classList.add("page");c.scrollTop=0}
   function closeSettings(){$("setCard").classList.remove("page")}
@@ -611,25 +1056,71 @@ a{color:var(--accent)}
   $("theme").onchange=function(){st.settings.theme=this.value;save();applyTheme()};
   $("save0").onclick=function(){
     var nm=$("pName").value.trim(),cl=$("pCol").value.trim(),rl=$("pRoll").value.trim();
-    var a=parseInt($("A0").value,10),c=parseInt($("C0").value,10),m=parseInt($("minP").value,10),ad=$("asOf").value,w=[],err="",i;
+    var yr=$("pYear").value.trim(),sm=$("pSem").value.trim(),md=$("pMid").value.trim();
+    var sd=$("startDate").value,ad=startFresh?shiftIso(sd,-1):$("asOf").value;
+    var hasSub=editSubjects.length>0,hasTt=hasSub&&editTtDays.some(function(x){return x.length>0});
+    var a=startFresh?0:parseInt($("A0").value,10),c=startFresh?0:parseInt($("C0").value,10);
+    var m=parseInt($("minP").value,10),w=[],err="",i;
     if(!nm||!cl||!rl)err="Enter your name, college and roll number.";
-    else if(isNaN(a)||isNaN(c)||a<0||c<0)err="Enter attended and conducted as whole numbers.";
-    else if(a>c)err="Attended can't be more than conducted.";
-    else if(!/^\d{4}-\d{2}-\d{2}$/.test(ad)||ad>todayKey())err="Pick the date your numbers are up to (today or earlier).";
+    else if(!/^\d{4}-\d{2}-\d{2}$/.test(sd))err="Pick a valid college start date.";
+    else if(!startFresh&&(!/^\d{4}-\d{2}-\d{2}$/.test(ad)||ad>todayKey()))err="Pick the date your numbers are up to (today or earlier).";
+    else if(!startFresh&&!hasSub&&(isNaN(a)||isNaN(c)||a<0||c<0))err="Enter attended and conducted as whole numbers.";
+    else if(!startFresh&&!hasSub&&a>c)err="Attended can't be more than conducted.";
+    else if(!startFresh&&hasSub&&editSubjects.some(function(s){return s.baseA<0||s.baseC<0||s.baseA>s.baseC}))err="Subject attended classes can't exceed conducted classes.";
     else if(isNaN(m)||m<1||m>100)err="Minimum attendance must be between 1 and 100.";
-    for(i=1;i<=6&&!err;i++){var v=parseInt($("pw"+i).value,10);if(isNaN(v)||v<0||v>12)err="Periods per day must be from 0 to 12.";w[i]=v}
+    if(!hasTt&&!err){for(i=1;i<=6&&!err;i++){var v=parseInt($("pw"+i).value,10);if(isNaN(v)||v<0||v>12)err="Periods per day must be from 0 to 12.";w[i]=v}}
+    if(hasTt&&!err&&!/^\d{4}-\d{2}-\d{2}$/.test($("ttFrom").value))err="Pick a valid date for applying timetable changes.";
     if(err){msg(err,true);return}
-    var first=!st.profile;st.profile={name:nm,college:cl,roll:rl};
-    st.base.a=a;st.base.c=c;st.settings.minPct=m;
-    // Days on or before the new date are covered by the totals, so they are dropped.
-    if(ad!==st.base.asOf){st.base.asOf=ad;Object.keys(st.days).forEach(function(k){if(k<=ad)delete st.days[k]})}
-    for(i=1;i<=6;i++)st.pw[i]=w[i];
+
+    var first=!st.profile;
+    st.profile={name:nm,college:cl,roll:rl,year:yr,sem:sm,mid:md};
+    st.startDate=sd;
+    st.subjects=startFresh?editSubjects.map(function(s){return {id:s.id,name:s.name,minPct:s.minPct||null,baseA:0,baseC:0}}):editSubjects;
+    st.base=startFresh?{a:0,c:0,asOf:ad}:(hasSub?{a:0,c:0,asOf:ad}:{a:a,c:c,asOf:ad});
+    st.settings.minPct=m;
+    if(hasTt){
+      var eff=$("ttFrom").value||sd;
+      st.timetable=st.timetable.filter(function(t){return t.from!==eff});
+      st.timetable.push({from:eff,days:editTtDays.map(function(arr){return arr.slice()})});
+      st.timetable.sort(function(x,y){return x.from<y.from?-1:x.from>y.from?1:0});
+      st.pw=[0,1,2,3,4,5,6].map(function(d){return editTtDays[d].length});
+    }else{
+      for(i=1;i<=6;i++)st.pw[i]=w[i];
+    }
+    if(ad!==st.base.asOf){Object.keys(st.days).forEach(function(k){if(k<=ad)delete st.days[k]})}
     save();setupMode(false);if(first)closeSettings();draw();msg("Saved.",false);
   };
 
-  // Keep "today" correct if the app stays open past midnight.
+  // Start New Semester flow
+  $("newSemBtn").onclick=function(){
+    var p=st.profile||{};
+    $("nsYear").value=p.year||"";$("nsSem").value=p.sem||"";$("nsMid").value="Mid 1";
+    $("nsDate").value=todayKey();$("nsKeep").checked=true;
+    $("newSemModal").hidden=false;
+  };
+  $("nsCancel").onclick=function(){$("newSemModal").hidden=true};
+  $("nsGo").onclick=function(){
+    var ny=$("nsYear").value.trim(),ns=$("nsSem").value.trim(),nm=$("nsMid").value.trim(),nd=$("nsDate").value,keep=$("nsKeep").checked;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(nd))return;
+    var ob=overallBase(),all=totals(""),stats=subjectStats();
+    st.archives.unshift({
+      year:(st.profile&&st.profile.year)||"",sem:(st.profile&&st.profile.sem)||"",mid:(st.profile&&st.profile.mid)||"",
+      startDate:st.startDate,endDate:todayKey(),attended:ob.a+all.A,conducted:ob.c+all.C,
+      subjects:stats.map(function(x){return {name:x.sub.name,attended:x.a,conducted:x.c}})
+    });
+    if(st.profile){st.profile.year=ny;st.profile.sem=ns;st.profile.mid=nm}
+    st.startDate=nd;st.base={a:0,c:0,asOf:shiftIso(nd,-1)};st.days={};
+    if(keep){
+      st.subjects=st.subjects.map(function(s){return {id:s.id,name:s.name,minPct:s.minPct||null,baseA:0,baseC:0}});
+      if(st.timetable.length){st.timetable=[{from:nd,days:st.timetable[st.timetable.length-1].days}]}
+    }else{
+      st.subjects=[];st.timetable=[];
+    }
+    $("newSemModal").hidden=true;save();fillForm();draw();msg("Started new semester. Previous semester archived.",false);
+  };
+
+  // Update check
   function refreshNow(){var n=new Date();if(keyOf(n)!==todayKey()){now=n;draw()}}
-  // Update check: reads version.json from the repo. The button shows only when a newer build exists.
   var updInfo=null,GH="https://github.com/sreevachan/";
   function platform(){
     if(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.att)return "ios";
@@ -645,35 +1136,33 @@ a{color:var(--accent)}
     }).catch(function(){});
   }
   $("upd").onclick=function(){
-    if(!updInfo)return;
-    var p=platform();
+    if(!updInfo)return;var p=platform();
     if(p==="web"){location.reload();return}
-    if(p==="android"&&window.AndroidBridge&&AndroidBridge.installUpdate&&typeof updInfo.apkUrl==="string"&&updInfo.apkUrl.indexOf(GH)===0){AndroidBridge.installUpdate(updInfo.apkUrl);return}
     var u=(typeof updInfo.releaseUrl==="string"&&updInfo.releaseUrl.indexOf(GH)===0)?updInfo.releaseUrl:GH+"attendance-tracker/releases/latest";
     window.open(u,"_blank");
   };
   document.addEventListener("visibilitychange",function(){if(!document.hidden){refreshNow();checkUpdate()}});
-  setInterval(refreshNow,60000);
-  checkUpdate();
-  // Google sign-in is required. The iPhone app does the sign-in itself; this page only shows the screens.
-  var acct=null,eraseArmed=false,delArmed=false,guestArmed=false;
+  setInterval(refreshNow,60000);checkUpdate();
+
+  // Auth & Google Drive Backup
+  var acct=null,eraseArmed=false,delArmed=false,guestArmed=false,needsReconnect=false;
   function authPost(a,doc){try{AUTH.postMessage(doc?{action:a,doc:doc}:{action:a});return true}catch(e){return false}}
   function showGate(on,err){
     $("gate").hidden=!on;$("gErr").textContent=err||"";
     $("gSign").hidden=false;$("gSign").disabled=false;$("gErase").hidden=true;$("gOut").hidden=true;
-    // Guests are only allowed on a device with no account data, so signing out never exposes anyone's data.
     guestArmed=false;$("gWarn").hidden=true;$("gGuest").textContent="Continue without an account";$("gGuest").hidden=!!st.uid;
   }
   function renderAcct(){
     var g=!acct&&!!st.guest;
-    $("acctInfo").textContent=acct?"Signed in as "+(acct.email||acct.name||"your account"):(g?"You are using the app without an account. If you delete the app or lose this phone, your data can't be recovered.":"");
+    $("acctInfo").textContent=acct?"Signed in as "+(acct.email||acct.name||"your Google account"):(g?"Using offline mode. Sign in with Google to back up into your own Google Drive.":"");
     $("linkBtn").hidden=!g;$("outBtn").hidden=!acct;$("delBtn").hidden=!acct;$("delNote").hidden=!acct;
     var bk=st.backup;
-    $("syncInfo").textContent=acct?(bk==="std"?"Standard backup is on.":bk==="enc"?(cloudReady?"End-to-end encrypted backup is on.":"Your encrypted backup is locked."):"Backup is off."):"";
+    $("syncDriveBtn").hidden=!(acct&&!cloudReady&&bk!=="off");
+    $("syncInfo").textContent=acct?(bk==="std"?(cloudReady?"Standard backup in Google Drive is on.":"Tap Sync with Google Drive to sync."):bk==="enc"?(cloudReady?"End-to-end encrypted backup in Google Drive is on.":"Your encrypted backup is locked or needs Drive connection."):"Backup is off."):"";
     $("bkEnc").hidden=!(acct&&CRY&&bk!=="enc");
-    $("bkUnl").hidden=!(acct&&bk==="enc"&&!cloudReady);
+    $("bkUnl").hidden=!(acct&&bk==="enc"&&!cloudReady&&CLOUD);
     $("bkStd").hidden=!(acct&&((bk==="enc"&&cloudReady)||bk!=="enc"&&bk!=="std"));
-    $("bkStd").textContent=bk==="enc"?"Switch to standard backup":"Turn on standard backup";
+    $("bkStd").textContent=bk==="enc"?"Switch to standard Drive backup":"Turn on standard Drive backup";
     $("bkOff").hidden=!(acct&&(bk==="std"||bk==="enc"));
   }
   function wipeLocal(){try{localStorage.removeItem(KEY);localStorage.removeItem(OLD);localStorage.removeItem(OLD_BAK);localStorage.removeItem(KKEY)}catch(e){}}
@@ -683,13 +1172,11 @@ a{color:var(--accent)}
       showGate(true,"This device holds data for a different account. Use that account, or erase this device's data.");
       $("gErase").hidden=false;$("gOut").hidden=false;return;
     }
-    // First sign-in on this device (including a guest signing in): the data already here becomes this account's.
     if(!st.uid)st.uid=a.uid;
-    st.guest=false;save();
-    acct=a;showGate(false);renderAcct();draw();startCloud();
+    st.guest=false;save();acct=a;showGate(false);renderAcct();draw();startCloud();
   };
   window.onAuthError=function(m){
-    if(acct||st.guest){var e=$("acctMsg");e.textContent=m;e.className="msg bad";delArmed=false;$("delBtn").textContent="Delete account"}
+    if(acct||st.guest){var e=$("acctMsg");e.textContent=m;e.className="msg bad";delArmed=false;$("delBtn").textContent="Delete backup & data"}
     else showGate(true,m);
   };
   window.onDeleted=function(){wipeLocal();location.reload()};
@@ -701,25 +1188,27 @@ a{color:var(--accent)}
   };
   $("outBtn").onclick=function(){closeSettings();forgetKey();authPost("signOut")};
   $("delBtn").onclick=function(){
-    if(!delArmed){delArmed=true;$("delBtn").textContent="Tap again to delete everything";setTimeout(function(){delArmed=false;$("delBtn").textContent="Delete account"},4000);return}
-    delArmed=false;$("delBtn").textContent="Delete account";authPost("delete");
+    if(!delArmed){delArmed=true;$("delBtn").textContent="Tap again to delete everything";setTimeout(function(){delArmed=false;$("delBtn").textContent="Delete backup & data"},4000);return}
+    delArmed=false;$("delBtn").textContent="Delete backup & data";authPost("delete");
   };
   $("gGuest").onclick=function(){
     if(!guestArmed){guestArmed=true;$("gWarn").hidden=false;$("gGuest").textContent="I understand, continue without an account";return}
     guestArmed=false;st.guest=true;save();showGate(false);renderAcct();draw();
   };
   $("linkBtn").onclick=function(){$("acctMsg").textContent="";authPost("signIn")};
+  $("syncDriveBtn").onclick=function(){$("acctMsg").textContent="";authPost("connectDrive")};
   if(AUTH&&!st.guest){showGate(true);$("gSign").hidden=true;$("gGuest").hidden=true;authPost("status")}
   else if(AUTH)renderAcct();
-  // Welcome screen, shown once on first open. The encryption line appears only once encryption is really on.
+
   var ENCRYPTION_ON=!!(window.crypto&&crypto.subtle&&AUTH),WKEY="attendance-welcomed";
   function showWelcome(){
-    $("wText").textContent=ENCRYPTION_ON?"You choose how your backup is protected. With end-to-end encryption, only you can read your attendance, not even the developer.":"Your attendance is stored privately on this device.";
+    $("wText").textContent=ENCRYPTION_ON?"You choose how your backup is protected in your own Google Drive. With end-to-end encryption, only you can read your attendance, not even the developer.":"Your attendance is stored privately on this device.";
     $("welcome").hidden=false;
   }
   $("wGo").onclick=function(){try{localStorage.setItem(WKEY,"1")}catch(e){}$("welcome").hidden=true};
   try{if(!localStorage.getItem(WKEY))showWelcome()}catch(e){showWelcome()}
-  // ---- End-to-end encryption: everything is encrypted here, on the device, before it leaves. ----
+
+  // End-to-end encryption (PBKDF2-HMAC-SHA256 + AES-256-GCM, compatible with Android & iOS)
   var te=new TextEncoder(),td=new TextDecoder(),ITERS=310000,REC_ITERS=100000,encMode="";
   function b64(buf){var a=new Uint8Array(buf),t="";for(var i=0;i<a.length;i++)t+=String.fromCharCode(a[i]);return btoa(t)}
   function unb64(t){var x=atob(t),a=new Uint8Array(x.length);for(var i=0;i<x.length;i++)a[i]=x.charCodeAt(i);return a}
@@ -735,7 +1224,6 @@ a{color:var(--accent)}
   function unseal(key,text){var a=unb64(text);return crypto.subtle.decrypt({name:"AES-GCM",iv:a.slice(0,12)},key,a.slice(12))}
   function dkFrom(raw){return crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"])}
   function newCode(){var a=rnd(16),h="";for(var i=0;i<16;i++)h+=("0"+a[i].toString(16)).slice(-2);return h.toUpperCase()}
-  // A random data key encrypts your data. It is stored twice, wrapped by your passphrase and by the recovery code.
   function setupKeys(pass){
     var salt=rnd(16),rsalt=rnd(16),out={code:newCode()};
     return crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt","decrypt"]).then(function(k){
@@ -743,9 +1231,7 @@ a{color:var(--accent)}
     }).then(function(raw){
       out.raw=raw;
       return Promise.all([kek(pass,salt,ITERS),kek(out.code,rsalt,REC_ITERS)]).then(function(ks){return Promise.all([seal(ks[0],raw),seal(ks[1],raw)])});
-    }).then(function(w){
-      out.meta={v:1,salt:b64(salt),iters:ITERS,wrapPass:w[0],recSalt:b64(rsalt),wrapRec:w[1]};return out;
-    });
+    }).then(function(w){out.meta={v:1,salt:b64(salt),iters:ITERS,wrapPass:w[0],recSalt:b64(rsalt),wrapRec:w[1]};return out});
   }
   function unlockWith(secret,isRec){
     return kek(secret,unb64(isRec?META.recSalt:META.salt),isRec?REC_ITERS:META.iters)
@@ -753,7 +1239,6 @@ a{color:var(--accent)}
       .then(function(raw){return dkFrom(raw).then(function(k){DK=k;try{localStorage.setItem(KKEY,b64(raw))}catch(e){}})});
   }
   function forgetKey(){DK=null;META=null;cloudReady=false;try{localStorage.removeItem(KKEY)}catch(e){}}
-
   function push(){
     if(!cloudReady)return;
     if(st.backup==="std"){authPost("cloudPut",{v:1,mode:"std",data:JSON.stringify(payload()),updatedAt:st.updatedAt||Date.now()});return}
@@ -764,12 +1249,11 @@ a{color:var(--accent)}
   }
   function applyRemote(r,ts){
     if(!r||!r.pw||r.pw.length!==7||!r.base||!r.days||!r.settings||!r.settings.minPct)return;
-    ["profile","settings","pw","base","days","exam"].forEach(function(k){if(r[k]!==undefined)st[k]=r[k]});
-    st.settings.theme=st.settings.theme||"system";st.updatedAt=ts;lastPs=JSON.stringify(payload());
+    ["profile","settings","pw","subjects","timetable","startDate","base","days","exam","archives"].forEach(function(k){if(r[k]!==undefined)st[k]=r[k]});
+    st=normalizeV4(st);st.updatedAt=ts;lastPs=JSON.stringify(payload());
     try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}
     fillForm();applyTheme();setupMode(!st.profile);draw();
   }
-  // Newest copy wins (the whole backup is compared by time).
   function afterKey(doc){
     return unseal(DK,doc.blob).then(function(buf){
       var remote=JSON.parse(td.decode(buf));
@@ -779,24 +1263,22 @@ a{color:var(--accent)}
       renderAcct();
     });
   }
-  function startCloud(){
-    cloudReady=false;
-    authPost("cloudGet");
-  }
+  function startCloud(){cloudReady=false;authPost("cloudGet")}
   window.onCloud=function(r){
     if(!r)return;
-    if(r.op==="put"){if(!r.ok)$("syncInfo").textContent="Backup could not be saved. It will retry when you are online.";return}
-    if(r.op==="delete"){
-      if(r.ok){forgetKey();st.backup="off";save();renderAcct()}
-      else $("syncInfo").textContent="Could not delete the backup. Check your connection.";
-      return;
+    if(r.op==="put"){if(!r.ok){if(r.needsReconnect){cloudReady=false;renderAcct()}else $("syncInfo").textContent="Backup could not be saved. It will retry when you are online."}return}
+    if(r.op==="delete"){if(r.ok){forgetKey();st.backup="off";save();renderAcct()}else $("syncInfo").textContent="Could not delete the backup. Check your connection.";return}
+    if(!r.ok){renderAcct();if(!r.needsReconnect)$("syncInfo").textContent="Could not reach your Google Drive backup. Working offline.";return}
+    if(!r.exists||!r.doc){
+      META=null;
+      if(st.backup==="off"){renderAcct();return}
+      if(st.backup==="std"){cloudReady=true;renderAcct();push();return}
+      showChoice();return;
     }
-    if(!r.ok){$("syncInfo").textContent="Could not reach your backup. Working offline.";return}
-    if(!r.exists||!r.doc){META=null;if(st.backup==="off"){renderAcct();return}showChoice();return}
     if(r.doc.mode==="std"){afterStd(r.doc);return}
     if(!CRY){$("syncInfo").textContent="Encrypted backups are not available on this device.";return}
-    st.backup="enc";save();
-    CLOUD=r.doc;META={salt:r.doc.salt,iters:r.doc.iters,wrapPass:r.doc.wrapPass,recSalt:r.doc.recSalt,wrapRec:r.doc.wrapRec};
+    st.backup="enc";save();CLOUD=r.doc;
+    META={salt:r.doc.salt,iters:r.doc.iters,wrapPass:r.doc.wrapPass,recSalt:r.doc.recSalt,wrapRec:r.doc.wrapRec};
     var kb=null;try{kb=localStorage.getItem(KKEY)}catch(e){}
     if(!kb){showEnc("unlock");return}
     dkFrom(unb64(kb)).then(function(k){DK=k;return afterKey(CLOUD)}).catch(function(){DK=null;try{localStorage.removeItem(KKEY)}catch(e){}showEnc("unlock")});
@@ -806,7 +1288,7 @@ a{color:var(--accent)}
     encMode=m;$("enc").hidden=false;$("eErr").textContent=err||"";
     $("eSet").hidden=m!=="set";$("eRecBox").hidden=m!=="rec";$("eUnl").hidden=(m!=="unlock"&&m!=="unlockRec");
     $("eAlt").hidden=(m==="rec");
-    var T={set:["Create your passphrase","This passphrase encrypts your backup on this phone. Nobody can reset it, not even the developer. If you lose it, your recovery code is the only way back in."],
+    var T={set:["Create your passphrase","This passphrase encrypts your backup before uploading to your Google Drive. Nobody can reset it. If you lose it, your recovery code is the only way back in."],
       rec:["Save your recovery code","Write it down or save it somewhere safe. It is the only other way to open your backup, and it can't be shown again."],
       unlock:["Enter your passphrase","Your backup is encrypted. Enter your passphrase to unlock it on this device."],
       unlockRec:["Use your recovery code","Enter the recovery code you saved when you set up your backup."]}[m];
@@ -841,13 +1323,11 @@ a{color:var(--accent)}
       push();renderAcct();
     }else{
       var v=$("eIn").value.trim();if(!v)return;
-      var isRec=encMode==="unlockRec";
-      busy(true);
+      var isRec=encMode==="unlockRec";busy(true);
       unlockWith(isRec?v.toUpperCase().replace(/[^0-9A-F]/g,""):v,isRec).then(function(){return afterKey(CLOUD)}).then(function(){busy(false)})
         .catch(function(){busy(false);$("eErr").textContent=isRec?"That recovery code doesn't match.":"Wrong passphrase."});
     }
   };
-  // Backup choice: end-to-end encrypted, standard (readable by the developer), or none.
   var CRY=!!(window.crypto&&crypto.subtle),stdArmed=false,offArmed=false;
   function showChoice(){$("chEnc").hidden=!CRY;$("choice").hidden=false}
   function afterStd(doc){
@@ -865,12 +1345,12 @@ a{color:var(--accent)}
   $("bkUnl").onclick=function(){showEnc("unlock")};
   $("bkStd").onclick=function(){
     var b=$("bkStd");
-    if(st.backup==="enc"&&!stdArmed){stdArmed=true;b.textContent="Tap again: your data will be stored unencrypted";setTimeout(function(){stdArmed=false;renderAcct()},4000);return}
+    if(st.backup==="enc"&&!stdArmed){stdArmed=true;b.textContent="Tap again: store unencrypted in your Google Drive";setTimeout(function(){stdArmed=false;renderAcct()},4000);return}
     stdArmed=false;forgetKey();st.backup="std";cloudReady=true;save();push();renderAcct();
   };
   $("bkOff").onclick=function(){
     var b=$("bkOff");
-    if(!offArmed){offArmed=true;b.textContent="Tap again to delete your cloud backup";setTimeout(function(){offArmed=false;b.textContent="Turn off backup"},4000);return}
+    if(!offArmed){offArmed=true;b.textContent="Tap again to delete your Drive backup";setTimeout(function(){offArmed=false;b.textContent="Turn off backup"},4000);return}
     offArmed=false;b.textContent="Turn off backup";authPost("cloudDelete");
   };
   $("gear").onclick=openSettings;$("setClose").onclick=closeSettings;

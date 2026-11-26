@@ -32,7 +32,7 @@ A website and apps to track college attendance: mark each day, see your percenta
 
 ## Use it
 - **iPhone:** use the website below. In Safari, tap Share, then **Add to Home Screen** to get an icon. The native iPhone app is not available to the public. It is installed only on the developer's own phone and on phones of people he personally gives access to from his Mac.
-- **Android:** download the APK from the [Releases](../../releases) page (coming soon). You can also install the website from Chrome with **Install app**.
+- **Android:** download [`app-release.apk`](https://github.com/sreevachan/attendance-tracker/releases/latest/download/app-release.apk) from the [Releases](https://github.com/sreevachan/attendance-tracker/releases/latest) page (includes a home-screen widget and in-app updates). You can also install the website from Chrome with **Install app**.
 - **Website:** https://sreevachan.github.io/attendance-tracker/ (works on any phone or computer; no widget)
 
 ## Project structure

@@ -1,6 +1,7 @@
 {
-  "version": "2.0.0",
-  "build": 2,
-  "notes": "Setup screen, settings, themes, update notices, celebration.",
-  "releaseUrl": "https://github.com/sreevachan/attendance-tracker/releases/latest"
+  "version": "2.1.0",
+  "build": 3,
+  "notes": "Native Android APK, Google Drive private backup, subject-wise timetable & attendance, custom start date, Year/Sem/Mid, semester reset.",
+  "releaseUrl": "https://github.com/sreevachan/attendance-tracker/releases/latest",
+  "apkUrl": "https://github.com/sreevachan/attendance-tracker/releases/latest/download/app-release.apk"
 }

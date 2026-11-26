@@ -1,6 +1,6 @@
 // Lets the website be installed and opened again without a connection.
-// Network first, so a new version of the page always wins when you are online.
-var CACHE = "attendance-v1";
+// Network first with cache bypass on shell assets, so updates always win when online.
+var CACHE = "attendance-v4";
 var SHELL = ["./", "index.html", "manifest.webmanifest", "firebase-config.js", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", function (e) {
@@ -20,7 +20,7 @@ self.addEventListener("fetch", function (e) {
   var r = e.request;
   if (r.method !== "GET" || new URL(r.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(r).then(function (res) {
+    fetch(r, { cache: "no-cache" }).then(function (res) {
       var copy = res.clone();
       caches.open(CACHE).then(function (c) { c.put(r, copy); });
       return res;

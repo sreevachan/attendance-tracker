@@ -14,3 +14,6 @@ google-services.json
 *.jks
 .env
 .firebase/
+android/.gradle/
+android/app/build/
+android/local.properties

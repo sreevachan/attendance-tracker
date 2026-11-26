@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Attendance</string>
+    <string name="widget_name">Attendance</string>
+    <string name="widget_description">Your attendance percentage and progress bar.</string>
+    <string name="google_web_client_id" translatable="false">252190190323-si76bbi8t78v23brs8b0o6jgpdj3o0ht.apps.googleusercontent.com</string>
+</resources>
