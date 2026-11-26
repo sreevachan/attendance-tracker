@@ -305,8 +305,8 @@ a{color:var(--accent)}
   var cfg=window.FIREBASE_CONFIG;
   var native=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.auth;
   if(native||!/^https?:$/.test(location.protocol)||!cfg||String(cfg.apiKey).indexOf("PASTE")===0)return;
-  // The old GitHub Pages address cannot sign in, so send visitors to the real site.
-  if(/github\.io$/.test(location.hostname)&&cfg.authDomain&&location.hostname!==cfg.authDomain){location.replace("https://"+cfg.authDomain+"/");return}
+  // Other addresses (GitHub Pages, the .web.app twin) cannot complete sign-in, so send visitors to the auth domain.
+  if(/(github\.io|web\.app)$/.test(location.hostname)&&cfg.authDomain&&location.hostname!==cfg.authDomain){location.replace("https://"+cfg.authDomain+"/");return}
   var F=null,V="https://www.gstatic.com/firebasejs/10.12.2/",DELKEY="attendance-pending-delete";
   function call(fn,arg){if(window[fn])window[fn](arg)}
   function who(u){return u?{signedIn:true,uid:u.uid,name:u.displayName||"",email:u.email||""}:{signedIn:false}}
